@@ -1,6 +1,6 @@
 update_db_wakeup_ec2s:
   handler: lambdas/update_db_wakeup_ec2s/handler.wakeup
-  iamRoleStatementsName: update-db-wakeup-ec2s-ddb-put-get
+  iamRoleStatementsName: VideoUrlsTable-put-get
   iamRoleStatements:
     - Effect: "Allow"
       Action:

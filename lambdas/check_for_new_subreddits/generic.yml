@@ -1,0 +1,11 @@
+check_for_new_subreddits:
+  handler: lambdas/check_for_new_subreddits/handler.check
+  iamRoleStatementsName: subreddit_SNS-get-create
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - sns:CreateTopic
+        - sns:ListTopics
+      Resource:
+        - "*"
+ 

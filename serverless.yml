@@ -32,41 +32,14 @@ provider:
     VIDEOURLS_TABLE_NAME: ${self:custom.VideoUrlsTable.name}
 
 plugins:
-  # - serverless-pseudo-parameters
-  # - serverless-bundle
   - serverless-iam-roles-per-function
+  # - serverless-python-requirements
 
-# you can overwrite defaults here
-#  stage: dev
-#  region: us-east-1
-
-# you can add statements to the Lambda function's IAM Role here
-#  iamRoleStatements:
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:ListBucket"
-#      Resource: { "Fn::Join" : ["", ["arn:aws:s3:::", { "Ref" : "ServerlessDeploymentBucket" } ] ]  }
-#    - Effect: "Allow"
-#      Action:
-#        - "s3:PutObject"
-#      Resource:
-#        Fn::Join:
-#          - ""
-#          - - "arn:aws:s3:::"
-#            - "Ref" : "ServerlessDeploymentBucket"
-#            - "/*"
-
-# you can define service wide environment variables here
-#  environment:
-#    variable1: value1
-
-# you can add packaging information here
-#package:
-#  patterns:
-#    - '!exclude-me.py'
-#    - '!exclude-me-dir/**'
-#    - include-me.py
-#    - include-me-dir/**
+package:
+  individually: true
+  patterns:
+    - '!.venv/**'
+    - 'lambdas/check_for_new_subreddits/subredditList.py'
 
 resources:
   Resources:
@@ -78,7 +51,9 @@ custom:
     arn: !GetAtt VideoUrlsTable.Arn
 
 functions:
-  - ${file(lambdas/update_db_wakeup_ec2s/generic.yml)}
+  - update_db_wakeup_ec2s: ${file(lambdas/update_db_wakeup_ec2s/generic.yml):update_db_wakeup_ec2s}
+  - check_for_new_subreddits: ${file(lambdas/check_for_new_subreddits/generic.yml):check_for_new_subreddits}
+
   # wakeupec2s:
   #   handler: wakeupec2s.wakeup.hello
 #    The following are a few example events you can configure
@@ -99,7 +74,7 @@ functions:
 #          sql: "SELECT * FROM 'some_topic'"
 #      - cloudwatchEvent:
 #          event:
-#            source:
+#            source: 
 #              - "aws.ec2"
 #            detail-type:
 #              - "EC2 Instance State-change Notification"
