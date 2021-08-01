@@ -12,18 +12,24 @@ sqs = boto3.client('sqs')
 queue_url = os.getenv("INITIAL_SUBREDDIT_QUEUE_URL")
 
 def push_subreddits_to_queue():
-    for idx, subreddit in enumerate(all_subreddits):
-        sqs.send_message(QueueUrl=queue_url, MessageBody=subreddit + str(idx))
+    for subreddit in all_subreddits:
+        sqs.send_message(QueueUrl=queue_url, MessageBody=subreddit)
   
 
 def check(event, context):
-    start = timer()
-    push_subreddits_to_queue()
-    end = timer()
-    response = {
-        "statusCode": 200, 
-        "time_taken": end - start
-    }
+    try:
+        start = timer()
+        push_subreddits_to_queue()
+        end = timer()
+        response = {
+            "statusCode": 200, 
+            "time_taken": end - start
+        }
+    except Exception as e:
+        response = {
+            "statusCode":500,
+            "error": f"Failed with error: {e}"
+        }
 
     return response
 
