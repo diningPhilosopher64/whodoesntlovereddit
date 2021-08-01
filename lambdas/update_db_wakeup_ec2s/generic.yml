@@ -1,7 +1,7 @@
 function:
   handler: lambdas/update_db_wakeup_ec2s/handler.wakeup
-  # events:
-  #   - schedule: cron(0 3 * * ? *) # 8:30 PM ist everyday
+  events:
+    - schedule: cron(0 3 * * ? *) # 8:30 PM ist everyday
   iamRoleStatementsName: VideoUrlsTable-put-get
   iamRoleStatements:
     - Effect: "Allow"

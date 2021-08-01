@@ -12,8 +12,9 @@ sqs = boto3.client('sqs')
 queue_url = os.getenv("INITIAL_SUBREDDIT_QUEUE_URL")
 
 def push_subreddits_to_queue():
-    for subreddit in all_subreddits:
-        sqs.send_message(QueueUrl=queue_url, MessageBody=subreddit)
+    for subreddit in all_subreddits:        
+        res = sqs.send_message(QueueUrl=queue_url, MessageBody=subreddit)
+        
   
 
 def check(event, context):
