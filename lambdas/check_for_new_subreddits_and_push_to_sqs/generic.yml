@@ -1,0 +1,17 @@
+function:
+  handler: lambdas/check_for_new_subreddits_and_push_to_sqs/handler.check
+  events:
+    - schedule: cron(30 15 * * ? *)
+    
+  iamRoleStatementsName: subreddit-SQS-send-message
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - sqs:SendMessage
+      Resource:
+        - "*"
+  environment:
+    INITIAL_SUBREDDIT_QUEUE_URL: ${self:custom.InitialSubredditQueue.name}
+
+
+ 

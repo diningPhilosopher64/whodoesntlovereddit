@@ -1,1 +1,0 @@
-subreddits =  ["idiotsincars","funny"]
