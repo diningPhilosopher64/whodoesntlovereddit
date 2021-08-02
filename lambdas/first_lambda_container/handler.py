@@ -7,11 +7,12 @@ import json, boto3
   
 
 def run(event, context):
-    # print("Hello world")
+
+    
     response = {
       "hello": "world"
     }
-    
+
 
     return response
 
