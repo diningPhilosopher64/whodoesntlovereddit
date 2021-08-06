@@ -43,13 +43,17 @@ package:
 
 resources:
   Resources:
-    VideoUrlsTable: ${file(resources/VideoUrlsTable.yml):VideoUrlsTable}
-    InitialSubredditQueue: ${file(resources/InitialSubredditQueue.yml):InitialSubredditQueue}
+    VideoUrlsTable: ${file(resources/Tables/VideoUrlsTable.yml):VideoUrlsTable}
+    RedditAccountsTable: ${file(resources/Tables/RedditAccountsTable.yml):RedditAccountsTable}
+    InitialSubredditQueue: ${file(resources/Queues/InitialSubredditQueue.yml):InitialSubredditQueue}
 
 custom:
   VideoUrlsTable:
     name: !Ref VideoUrlsTable
     arn: !GetAtt VideoUrlsTable.Arn
+  RedditAccountsTable:
+    name: !Ref RedditAccountsTable
+    arn: !GetAtt RedditAccountsTable.Arn
   InitialSubredditQueue:
     name: !Ref InitialSubredditQueue
     arn: !GetAtt InitialSubredditQueue.Arn
