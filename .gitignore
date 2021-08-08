@@ -119,3 +119,4 @@ dist
 
 .venv/
 
+ sandbox/.ipynb_checkpoints/
