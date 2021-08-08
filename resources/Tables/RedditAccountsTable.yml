@@ -6,10 +6,10 @@ RedditAccountsTable:
     AttributeDefinitions:
       - AttributeName: subreddit
         AttributeType: S
-      - AttributeName: email_address
-        AttributeType: S
+      # - AttributeName: email_address
+      #   AttributeType: S
     KeySchema:
       - AttributeName: subreddit
         KeyType: HASH
-      - AttributeName: email_address
-        KeyType: RANGE
+      # - AttributeName: email_address
+      #   KeyType: RANGE

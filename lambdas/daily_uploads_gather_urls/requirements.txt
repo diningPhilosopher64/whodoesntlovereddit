@@ -1,0 +1,5 @@
+youtube_dl
+pandas
+boto3
+requests
+

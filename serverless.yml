@@ -24,6 +24,10 @@ provider:
   region: ap-south-1
   stage: ${opt:stage, 'dev'}
   profile: whodoesntlovereddit
+  environment:
+    DAILY_UPLOADS_TABLE_NAME: ${self:custom.DailyUploadsTable.name}
+    REDDIT_ACCOUNTS_TABLE_NAME: ${self:custom.RedditAccountsTable.name}
+
   ecr:
     images:
       firstImage:
@@ -44,10 +48,14 @@ package:
 resources:
   Resources:
     VideoUrlsTable: ${file(resources/Tables/VideoUrlsTable.yml):VideoUrlsTable}
+    DailyUploadsTable: ${file(resources/Tables/DailyUploadsTable.yml):DailyUploadsTable}
     RedditAccountsTable: ${file(resources/Tables/RedditAccountsTable.yml):RedditAccountsTable}
     InitialSubredditQueue: ${file(resources/Queues/InitialSubredditQueue.yml):InitialSubredditQueue}
 
 custom:
+  DailyUploadsTable:
+    name: !Ref DailyUploadsTable
+    arn: !GetAtt DailyUploadsTable.Arn
   VideoUrlsTable:
     name: !Ref VideoUrlsTable
     arn: !GetAtt VideoUrlsTable.Arn
