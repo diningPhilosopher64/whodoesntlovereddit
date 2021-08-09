@@ -28,7 +28,7 @@ provider:
     DAILY_UPLOADS_TABLE_NAME: ${self:custom.DailyUploadsTable.name}
     REDDIT_ACCOUNTS_TABLE_NAME: ${self:custom.RedditAccountsTable.name}
     REDDIT_AUTH_URL: 'https://www.reddit.com/api/v1/access_token'
-    REDDIT_API_URL_TOP: 'https://oauth.reddit.com/r/place_holder_value/top'
+    REDDIT_API_URL_TOP: 'https://oauth.reddit.com/r/placeholder_value/top'
 
   ecr:
     images:

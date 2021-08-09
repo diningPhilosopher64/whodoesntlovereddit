@@ -16,15 +16,16 @@ headers = {"User-Agent": "placeholder_valueAPI/0.0.1"}
 data = {"grant_type": "password", "username": "", "password": ""}
 
 
-REDDIT_API_URL_TOP = os.getenv("REDDIT_API_URL_TOP")
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
 
 
 def run(event, context):
 
-    # Hardcoding subreddit value for now. In production, should extract from queue:
+    # TODO: Hardcoding subreddit value for now. In production, should extract from queue:
     subreddit = "funny"
+    REDDIT_API_URL_TOP = os.getenv("REDDIT_API_URL_TOP")
+    REDDIT_API_URL_TOP = REDDIT_API_URL_TOP.replace("placeholder_value", subreddit)
 
     get_item = {"subreddit": {"S": subreddit}}
     CLIENT_ID = None
@@ -51,17 +52,31 @@ def run(event, context):
     # Request for access token from Reddit API
     res = requests.post(REDDIT_AUTH_URL, auth=auth, data=data, headers=headers)
 
-    print("Auth request response ", res.json())
-
     ACCESS_TOKEN = res.json()["access_token"]
 
     headers["Authorization"] = f"bearer {ACCESS_TOKEN}"
 
     res = requests.get(REDDIT_API_URL_TOP, headers=headers)
 
-    # posts = []
-    # for post in res.json()["data"]["children"]:
-    #     print(post["data"]["title"])
+    posts = []
+    df_top = pd.DataFrame()
 
-    response = {"hello": "world", "response": res.json()}
+    for post in res.json()["data"]["children"]:
+        df_top = df_top.append(
+            {
+                "title": post["data"]["title"],
+                "upvote_ratio": post["data"]["upvote_ratio"],
+                "ups": post["data"]["ups"],
+                "downs": post["data"]["downs"],
+                "score": post["data"]["score"],
+                "url": post["data"]["url"],
+            },
+            ignore_index=True,
+        )
+
+    df_top = df_top.sort_values(
+        ["score", "upvote_ratio", "ups"], ascending=False, axis=0
+    )
+
+    response = {"hello": "world", "posts": df_top["url"]}
     return response
