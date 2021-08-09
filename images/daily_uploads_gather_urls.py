@@ -6,7 +6,7 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 from lib import db_helpers
 
 
-ddb = boto3.client("dynamodb")
+ddb = boto3.client("dynamodb", region_name="ap-south-1")
 
 # Replace placeholder_value with value from the event object.
 
@@ -78,5 +78,11 @@ def run(event, context):
         ["score", "upvote_ratio", "ups"], ascending=False, axis=0
     )
 
-    response = {"hello": "world", "posts": df_top["url"]}
+    daily_uploads_table = os.getenv("DAILY_UPLOADS_TABLE_NAME")
+
+    res = ddb.scan(TableName=daily_uploads_table)
+
+    print(res)
+
+    response = {"hello": "world", "db_response": res}
     return response

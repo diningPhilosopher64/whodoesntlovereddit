@@ -27,3 +27,7 @@ def extract_value(dictionary):
 
     if data_type == "S":
         return value
+
+
+def serialize_to_db_item(item) -> dict:
+    pass

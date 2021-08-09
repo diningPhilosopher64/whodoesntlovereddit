@@ -11,3 +11,11 @@ function:
         - dynamodb:GetItem
       Resource:
         - ${self:custom.RedditAccountsTable.arn}
+
+    - Effect: "Allow"
+      Action:
+        - dynamodb:GetItem
+        - dynamodb:PutItem
+        - dynamodb:Scan
+      Resource:
+        - ${self:custom.DailyUploadsTable.arn}
