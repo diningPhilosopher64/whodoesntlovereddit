@@ -1,7 +1,7 @@
-VideoUrlsTable:
+DailyUploadsTable:
   Type: AWS::DynamoDB::Table
   Properties:
-    TableName: VideoUrlsTable-${self:provider.stage}
+    TableName: DailyUploadsTable-${self:provider.stage}
     BillingMode: PAY_PER_REQUEST
     AttributeDefinitions:
       # Naming the Date as the PK to easily identify. 
@@ -18,3 +18,22 @@ VideoUrlsTable:
         KeyType: HASH
       - AttributeName: "SK"
         KeyType: "RANGE"
+
+# For the most part PK will contain the date and SK will contain the subreddit
+# This way I'll know on a specific day for a specific subreddit the list of video urls.
+
+# The only exception to this would be PK subreddit and SK date.
+# The reason for having the above would be to have the total duration of the videos collected till now.
+
+# So, everyday I'll have 1 new Item collection which contains: 
+#   Date as PK and subreddit as SK. Other attributes will contain the array of urls to download.
+
+# AND
+
+# I'll have a new row for each subreddit:
+#   subreddit as PK and date as SK. Other attribute will be a number containing the duration of all videos of that subreddit 
+#   for that day. This way I can check if:
+#     On 8th Auguest, for subreddit r/funny: All the urls gathered for that day and the total duration of those videos in seconds.
+#                                            So, for 10 minutes 1 seconds -> 10*60 + 1 = 601 seconds. Before exiting the lambda, check if 
+#                                            count is less than 600 seconds. If yes, you'll have to randomnly pick
+

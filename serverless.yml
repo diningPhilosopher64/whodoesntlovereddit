@@ -27,11 +27,16 @@ provider:
   environment:
     DAILY_UPLOADS_TABLE_NAME: ${self:custom.DailyUploadsTable.name}
     REDDIT_ACCOUNTS_TABLE_NAME: ${self:custom.RedditAccountsTable.name}
+    REDDIT_AUTH_URL: 'https://www.reddit.com/api/v1/access_token'
+    REDDIT_API_URL_TOP: 'https://oauth.reddit.com/r/place_holder_value/top'
 
   ecr:
     images:
       firstImage:
         path: lambdas/first_lambda_container/
+
+      daily_uploads_gather_urls_image:
+        path: lambdas/daily_uploads_gather_urls/
 
 plugins:
   - serverless-iam-roles-per-function
@@ -43,6 +48,9 @@ package:
     - '!.venv/**'
     - '!node_modules/**'
     - '!scripts/**'
+    - 'lib/'    
+    - '!README.txt'
+    - '!copy_tree.py'
     # - 'lambdas/check_for_new_subreddits/subredditList.py'
 
 resources:
@@ -65,13 +73,13 @@ custom:
   InitialSubredditQueue:
     name: !Ref InitialSubredditQueue
     arn: !GetAtt InitialSubredditQueue.Arn
-  
-    
+
 
 functions:
   - update_db_wakeup_ec2s: ${file(lambdas/update_db_wakeup_ec2s/generic.yml):function}
   - check_for_new_subreddits_and_push_to_sqs: ${file(lambdas/check_for_new_subreddits_and_push_to_sqs/generic.yml):function}
   - pick_from_sqs_and_preprocess: ${file(lambdas/pick_from_sqs_and_preprocess/generic.yml):function}
   - first_lambda_container: ${file(lambdas/first_lambda_container/generic.yml):function}
+  - daily_uploads_gather_urls: ${file(lambdas/daily_uploads_gather_urls/generic.yml):function}
 
  

@@ -1,19 +1,10 @@
-import json, boto3
+import sys, os
 
-# Added the below 2 lines to let python discover files other than the handler
-# ie. enabled relative imports with the below 2 lines.
-# import sys, os
-# sys.path.append(os.path.join(os.path.dirname(__file__)))
-  
+sys.path.append(os.path.join(os.path.dirname(__file__)))
+
+from lib import db
+
 
 def run(event, context):
-
-    
-    response = {
-      "hello": "world"
-    }
-
-
+    response = {"hello": "world", "value": db.double_number(10)}
     return response
-
-
