@@ -1,3 +1,13 @@
 function:
   image:
     name: daily_uploads_gather_urls_image
+    command: 
+      - daily_uploads_gather_urls.run
+
+  iamRoleStatementsName: RedditAccountsTable-get
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - dynamodb:GetItem
+      Resource:
+        - ${self:custom.RedditAccountsTable.arn}

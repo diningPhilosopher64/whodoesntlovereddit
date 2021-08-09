@@ -36,7 +36,7 @@ provider:
         path: lambdas/first_lambda_container/
 
       daily_uploads_gather_urls_image:
-        path: lambdas/daily_uploads_gather_urls/
+        path: images/
 
 plugins:
   - serverless-iam-roles-per-function
