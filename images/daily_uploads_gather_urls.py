@@ -1,9 +1,11 @@
 import requests, pandas as pd, boto3
 import sys, os
 
+
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 from lib import db_helpers
+from entities.DailyUpload import DailyUpload
 
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
@@ -27,6 +29,8 @@ def run(event, context):
     REDDIT_API_URL_TOP = os.getenv("REDDIT_API_URL_TOP")
     REDDIT_API_URL_TOP = REDDIT_API_URL_TOP.replace("placeholder_value", subreddit)
 
+    daily_upload = DailyUpload(subreddit=subreddit)
+
     get_item = {"subreddit": {"S": subreddit}}
     CLIENT_ID = None
     SECRET_KEY = None
@@ -35,7 +39,7 @@ def run(event, context):
 
     try:
         response = ddb.get_item(TableName=REDDIT_ACCOUNTS_TABLE_NAME, Key=get_item)
-        item = db_helpers.deserialize_db_item(response["Item"])
+        item = db_helpers.deserialize_from_db_item(response["Item"])
         CLIENT_ID = item["personal_use_script"]
         SECRET_KEY = item["secret_key"]
         USERNAME = item["username"]
@@ -62,27 +66,33 @@ def run(event, context):
     df_top = pd.DataFrame()
 
     for post in res.json()["data"]["children"]:
-        df_top = df_top.append(
-            {
-                "title": post["data"]["title"],
-                "upvote_ratio": post["data"]["upvote_ratio"],
-                "ups": post["data"]["ups"],
-                "downs": post["data"]["downs"],
-                "score": post["data"]["score"],
-                "url": post["data"]["url"],
-            },
-            ignore_index=True,
-        )
+        if post["data"]["is_video"]:
+            df_top = df_top.append(
+                {
+                    "title": post["data"]["title"],
+                    "upvote_ratio": post["data"]["upvote_ratio"],
+                    "ups": post["data"]["ups"],
+                    "downs": post["data"]["downs"],
+                    "score": post["data"]["score"],
+                    "url": post["data"]["url"],
+                },
+                ignore_index=True,
+            )
 
     df_top = df_top.sort_values(
         ["score", "upvote_ratio", "ups"], ascending=False, axis=0
     )
 
+    daily_upload.urls = list(df_top["url"])
+
     daily_uploads_table = os.getenv("DAILY_UPLOADS_TABLE_NAME")
 
-    res = ddb.scan(TableName=daily_uploads_table)
+    res = ddb.put_item(
+        TableName=daily_uploads_table,
+        Item=daily_upload.serialize_date_subreddit(),
+    )
 
     print(res)
 
-    response = {"hello": "world", "db_response": res}
+    response = {"hello": "world"}
     return response

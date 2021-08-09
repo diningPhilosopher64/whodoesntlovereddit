@@ -1,4 +1,4 @@
-def deserialize_db_item(item) -> dict:
+def deserialize_from_db_item(item) -> dict:
     """Deserializes an item from dynamodb and returns the item as a Dict
 
     Args:
