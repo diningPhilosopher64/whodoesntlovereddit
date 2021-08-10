@@ -4,12 +4,12 @@ RedditAccountsTable:
     TableName: RedditAccountsTable-${self:provider.stage}
     BillingMode: PAY_PER_REQUEST
     AttributeDefinitions:
-      - AttributeName: subreddit
+      - AttributeName: PK
         AttributeType: S
       # - AttributeName: email_address
       #   AttributeType: S
     KeySchema:
-      - AttributeName: subreddit
+      - AttributeName: PK
         KeyType: HASH
       # - AttributeName: email_address
       #   KeyType: RANGE

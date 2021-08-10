@@ -1,25 +1,20 @@
-import requests, pandas as pd, boto3
-import sys, os
+import requests, boto3, pandas as pd, os, sys
+from pathlib import Path
 
-
+# Making the current directory in which this file is in discoverable to python
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 from lib import db_helpers
 from entities.DailyUpload import DailyUpload
+from entities.RedditAccount import RedditAccount
 
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
 
-# Replace placeholder_value with value from the event object.
-
-headers = {"User-Agent": "placeholder_valueAPI/0.0.1"}
-
-# Initializing without the actual username and password
-data = {"grant_type": "password", "username": "", "password": ""}
-
 
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
+DAILY_UPLOADS_TABLE = os.getenv("DAILY_UPLOADS_TABLE_NAME")
 
 
 def run(event, context):
@@ -30,42 +25,23 @@ def run(event, context):
     REDDIT_API_URL_TOP = REDDIT_API_URL_TOP.replace("placeholder_value", subreddit)
 
     daily_upload = DailyUpload(subreddit=subreddit)
+    reddit_account = RedditAccount(subreddit=subreddit, ddb=ddb)
 
-    get_item = {"subreddit": {"S": subreddit}}
-    CLIENT_ID = None
-    SECRET_KEY = None
-    USERNAME = None
-    PASSWORD = None
+    # Fetch account details from reddit accounts table and update object
+    reddit_account.fetch_and_update_account_details(REDDIT_ACCOUNTS_TABLE_NAME)
 
-    try:
-        response = ddb.get_item(TableName=REDDIT_ACCOUNTS_TABLE_NAME, Key=get_item)
-        item = db_helpers.deserialize_from_db_item(response["Item"])
-        CLIENT_ID = item["personal_use_script"]
-        SECRET_KEY = item["secret_key"]
-        USERNAME = item["username"]
-        PASSWORD = item["password"]
+    # Authenticate with reddit api and fetch access token
+    reddit_account.authenticate_with_api()
+    reddit_account.fetch_access_token(REDDIT_AUTH_URL)
 
-    except Exception as e:
-        print(f"Failed with exception: {e.args[0]}")
+    posts = reddit_account.fetch_posts_as_json(
+        REDDIT_API_URL_TOP, params={"limit": "100"}
+    )
 
-    auth = requests.auth.HTTPBasicAuth(CLIENT_ID, SECRET_KEY)
-
-    data["username"] = USERNAME
-    data["password"] = PASSWORD
-
-    # Request for access token from Reddit API
-    res = requests.post(REDDIT_AUTH_URL, auth=auth, data=data, headers=headers)
-
-    ACCESS_TOKEN = res.json()["access_token"]
-
-    headers["Authorization"] = f"bearer {ACCESS_TOKEN}"
-
-    res = requests.get(REDDIT_API_URL_TOP, headers=headers)
-
-    posts = []
     df_top = pd.DataFrame()
+    total_duration = 0
 
-    for post in res.json()["data"]["children"]:
+    for post in posts["data"]["children"]:
         if post["data"]["is_video"]:
             df_top = df_top.append(
                 {
@@ -79,20 +55,31 @@ def run(event, context):
                 ignore_index=True,
             )
 
+            total_duration += int(post["data"]["media"]["reddit_video"]["duration"])
+
     df_top = df_top.sort_values(
         ["score", "upvote_ratio", "ups"], ascending=False, axis=0
     )
 
-    daily_upload.urls = list(df_top["url"])
+    daily_upload.urls = daily_upload.urls + df_top["url"].tolist()
+    daily_upload.total_duration = total_duration
 
-    daily_uploads_table = os.getenv("DAILY_UPLOADS_TABLE_NAME")
-
-    res = ddb.put_item(
-        TableName=daily_uploads_table,
-        Item=daily_upload.serialize_date_subreddit(),
+    res = ddb.transact_write_items(
+        TransactItems=[
+            {
+                "Put": {
+                    "TableName": DAILY_UPLOADS_TABLE,
+                    "Item": daily_upload.serialize_date_subreddit(),
+                }
+            },
+            {
+                "Put": {
+                    "TableName": DAILY_UPLOADS_TABLE,
+                    "Item": daily_upload.serialize_subreddit_date(),
+                }
+            },
+        ]
     )
-
-    print(res)
 
     response = {"hello": "world"}
     return response
