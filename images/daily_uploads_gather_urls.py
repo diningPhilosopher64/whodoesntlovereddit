@@ -1,16 +1,13 @@
-import requests, boto3, pandas as pd, os, sys
+import boto3, os, sys
 from pathlib import Path
 
 # Making the current directory in which this file is in discoverable to python
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from lib import db_helpers
 from entities.DailyUpload import DailyUpload
 from entities.RedditAccount import RedditAccount
 
-
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
-
 
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
@@ -34,36 +31,48 @@ def run(event, context):
     reddit_account.authenticate_with_api()
     reddit_account.fetch_access_token(REDDIT_AUTH_URL)
 
-    posts = reddit_account.fetch_posts_as_json(
-        REDDIT_API_URL_TOP, params={"limit": "100"}
-    )
+    # if daily_upload.total_duration is less than 601 repeat fetch_posts and parse posts
+    after = None
+    while daily_upload.total_duration < 601:
+        posts = reddit_account.fetch_posts_as_json(
+            REDDIT_API_URL_TOP, params={"limit": "100", "after": after}
+        )
+        daily_upload.parse_posts(posts)
 
-    df_top = pd.DataFrame()
-    total_duration = 0
+    # while daily_upload.total_duration < 601:
+    #     posts = reddit_account.fetch_posts_as_json(
+    #         REDDIT_API_URL_TOP, params={"limit": "100"}
+    #     )
 
-    for post in posts["data"]["children"]:
-        if post["data"]["is_video"]:
-            df_top = df_top.append(
-                {
-                    "title": post["data"]["title"],
-                    "upvote_ratio": post["data"]["upvote_ratio"],
-                    "ups": post["data"]["ups"],
-                    "downs": post["data"]["downs"],
-                    "score": post["data"]["score"],
-                    "url": post["data"]["url"],
-                },
-                ignore_index=True,
-            )
+    #     daily_upload.parse_posts(posts)
 
-            total_duration += int(post["data"]["media"]["reddit_video"]["duration"])
+    # df_top = pd.DataFrame()
+    # total_duration = 0
 
-    df_top = df_top.sort_values(
-        ["score", "upvote_ratio", "ups"], ascending=False, axis=0
-    )
+    # for post in posts["data"]["children"]:
+    #     if post["data"]["is_video"]:
+    #         df_top = df_top.append(
+    #             {
+    #                 "title": post["data"]["title"],
+    #                 "upvote_ratio": post["data"]["upvote_ratio"],
+    #                 "ups": post["data"]["ups"],
+    #                 "downs": post["data"]["downs"],
+    #                 "score": post["data"]["score"],
+    #                 "url": post["data"]["url"],
+    #             },
+    #             ignore_index=True,
+    #         )
 
-    daily_upload.urls = daily_upload.urls + df_top["url"].tolist()
-    daily_upload.total_duration = total_duration
+    #         total_duration += int(post["data"]["media"]["reddit_video"]["duration"])
 
+    # df_top = df_top.sort_values(
+    #     ["score", "upvote_ratio", "ups"], ascending=False, axis=0
+    # )
+
+    # daily_upload.urls = daily_upload.urls + df_top["url"].tolist()
+    # daily_upload.total_duration = total_duration
+
+    # Has to be done at the end when you know you have more than 600 seconds of content.
     res = ddb.transact_write_items(
         TransactItems=[
             {

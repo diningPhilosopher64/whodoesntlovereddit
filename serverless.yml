@@ -51,6 +51,7 @@ package:
     - 'lib/'    
     - '!README.txt'
     - '!copy_tree.py'
+    - '!**/*.ipynb'
     # - 'lambdas/check_for_new_subreddits/subredditList.py'
 
 resources:
