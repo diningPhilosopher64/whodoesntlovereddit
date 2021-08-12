@@ -46,7 +46,7 @@ def check(event, context):
                         "Item": {
                             "PK": {"S": todays_date},
                             "SK": {"S": "total_subreddits_count"},
-                            "count": {"N": "2"},
+                            "count": {"N": str(len(all_subreddits))},
                         },
                     }
                 },

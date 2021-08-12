@@ -169,8 +169,13 @@ class DailyUpload:
     def deserialize_date_subreddit(item):
         pass
 
-    def deserialize_subreddit_date(item):
-        pass
+    @staticmethod
+    def deserialize_PK_SK_count(item):
+        deserialized_item = {}
+        for key, value in item.items():
+            for _key, _value in value.items():
+                deserialized_item[key] = _value
+        return deserialized_item
 
     def deserialize_subreddit_postID(item):
         pass

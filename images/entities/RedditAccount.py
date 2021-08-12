@@ -52,7 +52,7 @@ class RedditAccount:
     def authenticate_with_api(self):
         self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.secret_key)
 
-    def fetch_access_token(self, REDDIT_AUTH_URL):
+    def fetch_and_update_access_token(self, REDDIT_AUTH_URL):
         # Authorise and request for access token from Reddit API
         res = requests.post(
             REDDIT_AUTH_URL, auth=self.auth, data=self.data, headers=self.headers
