@@ -1,8 +1,20 @@
 from datetime import datetime
 import pandas as pd
 
+import ddb_helpers
+
 
 class DailyUpload:
+    post_keys_to_keep = [
+        "title",
+        "url",
+        "upvote_ratio",
+        "ups",
+        "author",
+        "name",
+        "total_awards_received",
+    ]
+
     def __init__(self, subreddit) -> None:
         self.subreddit = subreddit
         self.date = str(datetime.today().date())  ## Of the format yyyy-mm-dd
@@ -11,15 +23,6 @@ class DailyUpload:
         self.df_top = pd.DataFrame()
         self.latest_post = None
         self.eligible_posts = []
-        post_keys_to_keep = [
-            "title",
-            "url",
-            "upvote_ratio",
-            "ups",
-            "author",
-            "name",
-            "total_awards_received",
-        ]
 
     # Renamed from date_subreddit_key()
     def key(self) -> dict:
@@ -94,7 +97,7 @@ class DailyUpload:
                 post
             ):
 
-                temp = {key: post[key] for key in self.post_keys_to_keep}
+                temp = {key: post[key] for key in DailyUpload.post_keys_to_keep}
                 self.eligible_posts.append(temp)
                 # self.df_top = self.df_top.append(
                 #     {
@@ -146,7 +149,9 @@ class DailyUpload:
         serialized_post = {"M": {}}
 
         for key in DailyUpload.post_keys_to_keep:
-            serialized_post["M"][key] = {"S": post[key]}
+            serialized_post["M"][key] = {
+                ddb_helpers.get_datatype(post[key]): str(post[key])
+            }
 
         return serialized_post
 

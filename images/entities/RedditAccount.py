@@ -29,7 +29,7 @@ class RedditAccount:
             self.password = item["password"]
 
         except Exception as e:
-            print(f"Failed with exception: {e.args[0]}")
+            print(f"Failed with exception: {e}")
 
         self.data["username"] = self.username
         self.data["password"] = self.password

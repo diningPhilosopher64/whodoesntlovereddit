@@ -73,22 +73,38 @@ def run(event, context):
     # daily_upload.total_duration = total_duration
 
     # Has to be done at the end when you know you have more than 600 seconds of content.
-    res = ddb.transact_write_items(
-        TransactItems=[
-            {
-                "Put": {
-                    "TableName": DAILY_UPLOADS_TABLE,
-                    "Item": daily_upload.serialize_date_subreddit(),
-                }
-            },
-            {
-                "Put": {
-                    "TableName": DAILY_UPLOADS_TABLE,
-                    "Item": daily_upload.serialize_subreddit_date(),
-                }
-            },
-        ]
-    )
+
+    # SHOULD UPDATE THE VALUE IN DATE-today_subreddit_count ITEM.
+    try:
+        res = ddb.transact_write_items(
+            TransactItems=[
+                {
+                    "Put": {
+                        "TableName": DAILY_UPLOADS_TABLE,
+                        "Item": daily_upload.serialize_to_item(),
+                    }
+                },
+                {
+                    "Update": {
+                        "TableName": DAILY_UPLOADS_TABLE,
+                        "Key": {
+                            "PK": {"S": daily_upload.date},
+                            "SK": {"S": "todays_subreddits_count"},
+                        },
+                        "ConditionExpression": "attribute_exists(PK) and attribute_exists(SK)",
+                        "UpdateExpression": "SET #count = #count + :inc",
+                        "ExpressionAttributeNames": {"#count": "count"},
+                        "ExpressionAttributeValues": {":inc": {"N": "1"}},
+                    }
+                },
+            ]
+        )
+
+        if res["ResponseMetadata"]["HTTPStatusCode"] != 200:
+            raise Exception("Failed to write transaction")
+
+    except Exception as e:
+        print(e)
 
     response = {"hello": "world"}
     return response
