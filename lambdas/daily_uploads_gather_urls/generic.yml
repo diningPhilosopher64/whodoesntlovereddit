@@ -1,11 +1,22 @@
 function:
+  memorySize: 512
   image:
     name: daily_uploads_gather_urls_image
     command: 
       - daily_uploads_gather_urls.run
+  events:
+    - sqs: 
+        arn: ${self:custom.GatherUrlsForASubredditQueue.arn}
+        batchSize: 1
 
   iamRoleStatementsName: RedditAccountsTable-get
   iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - sqs:ReceiveMessage
+      Resource:
+        - ${self:custom.GatherUrlsForASubredditQueue.arn}
+
     - Effect: "Allow"
       Action:
         - dynamodb:GetItem
@@ -19,3 +30,9 @@ function:
         - dynamodb:Scan
       Resource:
         - ${self:custom.DailyUploadsTable.arn}
+      
+    - Effect: "Allow"
+      Action:
+        - sqs:SendMessage
+      Resource:
+        - ${self:custom.ProcessUrlsForSubredditGroupQueue.arn}

@@ -2,7 +2,7 @@ import requests
 
 
 class RedditAccount:
-    def __init__(self, subreddit, ddb):
+    def __init__(self, subreddit, ddb, REDDIT_ACCOUNTS_TABLE_NAME, REDDIT_AUTH_URL):
         self.subreddit = subreddit
         self.client_id = None
         self.secret_key = None
@@ -14,10 +14,17 @@ class RedditAccount:
         self.access_token = None
         self.ddb = ddb
 
+        # Prepare this object for fetching posts.
+        self.__fetch_and_update_account_details(
+            REDDIT_ACCOUNTS_TABLE_NAME=REDDIT_ACCOUNTS_TABLE_NAME
+        )
+        self.__authenticate_with_api()
+        self.__fetch_and_update_access_token(REDDIT_AUTH_URL=REDDIT_AUTH_URL)
+
     def key(self):
         return {"PK": {"S": self.subreddit}}
 
-    def fetch_and_update_account_details(self, REDDIT_ACCOUNTS_TABLE_NAME):
+    def __fetch_and_update_account_details(self, REDDIT_ACCOUNTS_TABLE_NAME):
         try:
             response = self.ddb.get_item(
                 TableName=REDDIT_ACCOUNTS_TABLE_NAME, Key=self.key()
@@ -49,10 +56,10 @@ class RedditAccount:
         if data_type == "S":
             return value
 
-    def authenticate_with_api(self):
+    def __authenticate_with_api(self):
         self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.secret_key)
 
-    def fetch_and_update_access_token(self, REDDIT_AUTH_URL):
+    def __fetch_and_update_access_token(self, REDDIT_AUTH_URL):
         # Authorise and request for access token from Reddit API
         res = requests.post(
             REDDIT_AUTH_URL, auth=self.auth, data=self.data, headers=self.headers

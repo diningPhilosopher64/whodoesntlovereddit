@@ -1,5 +1,0 @@
-InitialSubredditQueue:
-  Type: AWS::SQS::Queue
-  Properties:
-    QueueName: "InitialSubredditQueue"
-    

@@ -10,16 +10,14 @@ function:
       Action:
         - sqs:SendMessage
       Resource:
-        - "*"
+        - ${self:custom.GatherUrlsForASubredditQueue.arn}
 
     - Effect: "Allow"
       Action:
         - dynamodb:PutItem
       Resource:
         - ${self:custom.DailyUploadsTable.arn}
-        
-  environment:
-    INITIAL_SUBREDDIT_QUEUE_URL: ${self:custom.InitialSubredditQueue.name}
+
 
 
  

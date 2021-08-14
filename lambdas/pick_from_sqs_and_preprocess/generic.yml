@@ -2,7 +2,7 @@ function:
   handler: lambdas/pick_from_sqs_and_preprocess/handler.pick_and_preprocess
   events:
     - sqs: 
-        arn: ${self:custom.InitialSubredditQueue.arn}
+        arn: ${self:custom.GatherUrlsForASubredditQueue.arn}
         batchSize: 1
     
   iamRoleStatementsName: subreddit-SQS-receive-message

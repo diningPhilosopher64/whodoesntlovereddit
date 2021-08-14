@@ -1,5 +1,6 @@
 from datetime import datetime
-import pandas as pd
+
+# import pandas as pd
 
 import ddb_helpers
 
@@ -20,7 +21,7 @@ class DailyUpload:
         self.date = str(datetime.today().date())  ## Of the format yyyy-mm-dd
         self.total_duration = 0
         self.urls = []
-        self.df_top = pd.DataFrame()
+        # self.df_top = pd.DataFrame()
         self.latest_post = None
         self.eligible_posts = []
 
@@ -70,14 +71,12 @@ class DailyUpload:
 
     @staticmethod
     def __is_eligible(post):
-        if (
-            post["is_video"]
-            and post["ups"] > 0
-            and post["num_comments"] > 0
-            and not post["over_18"]
-            and not post["stickied"]
-        ):
-            return True
+        if post["is_video"] and not post["over_18"] and not post["stickied"]:
+            if post["total_awards_received"] > 0:
+                return True
+
+            if post["ups"] > 0 and post["num_comments"] > 0:
+                return True
 
         return False
 
@@ -99,44 +98,7 @@ class DailyUpload:
 
                 temp = {key: post[key] for key in DailyUpload.post_keys_to_keep}
                 self.eligible_posts.append(temp)
-                # self.df_top = self.df_top.append(
-                #     {
-                #         "title": post["title"],
-                #         "upvote_ratio": post["upvote_ratio"],
-                #         "ups": post["ups"],
-                #         "downs": post["downs"],
-                #         "score": post["score"],
-                #         "url": post["url"],
-                #     },
-                #     ignore_index=True,
-                # )
-
-                # self.total_duration += int(post["media"]["reddit_video"]["duration"])
-
-    # def sort_and_update_urls(self):
-    #     self.df_top = self.df_top.sort_values(
-    #         ["score", "total_awards_received", "ups", "upvote_ratio"],
-    #         ascending=False,
-    #         axis=0,
-    #     )
-
-    # self.urls = self.urls + self.df_top["url"].tolist()
-
-    # def serialize_subreddit_date(self):
-    #     item = self.subreddit_date_key()
-    #     item["total_duration"] = self.__serialize_total_duration()
-    #     return item
-
-    # def __serialize_urls(self):
-    #     serialized_urls = {"L": [{"S": url} for url in self.urls]}
-    #     return serialized_urls
-
-    #  post["title"],
-    #                     post["upvote_ratio"],
-    #                     post["ups"],
-    #                     post["score"],
-    #                     post["url"],
-    #                     post["author"],
+                self.total_duration += int(post["media"]["reddit_video"]["duration"])
 
     @staticmethod
     def __serialize_posts(posts):
@@ -159,9 +121,6 @@ class DailyUpload:
     def __serialize_subreddit(subreddit):
         return {"S": subreddit}
 
-    # def __serialize_total_duration(self):
-    #     return {"N": str(self.total_duration)}
-
     @staticmethod
     def __serialize_date(date):
         return {"S": date}
@@ -179,3 +138,41 @@ class DailyUpload:
 
     def deserialize_subreddit_postID(item):
         pass
+
+
+# self.df_top = self.df_top.append(
+#     {
+#         "title": post["title"],
+#         "upvote_ratio": post["upvote_ratio"],
+#         "ups": post["ups"],
+#         "downs": post["downs"],
+#         "score": post["score"],
+#         "url": post["url"],
+#     },
+#     ignore_index=True,
+# )
+
+# def sort_and_update_urls(self):
+#     self.df_top = self.df_top.sort_values(
+#         ["score", "total_awards_received", "ups", "upvote_ratio"],
+#         ascending=False,
+#         axis=0,
+#     )
+
+# self.urls = self.urls + self.df_top["url"].tolist()
+
+# def serialize_subreddit_date(self):
+#     item = self.subreddit_date_key()
+#     item["total_duration"] = self.__serialize_total_duration()
+#     return item
+
+# def __serialize_urls(self):
+#     serialized_urls = {"L": [{"S": url} for url in self.urls]}
+#     return serialized_urls
+
+#  post["title"],
+#                     post["upvote_ratio"],
+#                     post["ups"],
+#                     post["score"],
+#                     post["url"],
+#                     post["author"],

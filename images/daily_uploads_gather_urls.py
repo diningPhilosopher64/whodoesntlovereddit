@@ -2,41 +2,49 @@ import boto3, os, sys
 from pathlib import Path
 
 # Making the current directory in which this file is in discoverable to python
-sys.path.append(os.path.join(os.path.dirname(__file__)))
+# sys.path.append(os.path.join(os.path.dirname(__file__)))
 
 from entities.DailyUpload import DailyUpload
 from entities.RedditAccount import RedditAccount
+from subreddit_groups import subreddit_groups
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
+sqs = boto3.client("sqs")
 
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
 DAILY_UPLOADS_TABLE = os.getenv("DAILY_UPLOADS_TABLE_NAME")
+PROCESS_URLS_FOR_SUBREDDIT_GROUP_QUEUE_URL = os.getenv(
+    "PROCESS_URLS_FOR_SUBREDDIT_GROUP_QUEUE_URL"
+)
 
 
 def run(event, context):
 
     # TODO: Hardcoding subreddit value for now. In production, should extract from queue:
-    subreddit = "funny"
+    # subreddit = "funny"
+    subreddit = str(event["Records"][0]["body"])
+
     # Getting from env here because, if container is warm, it will fetch from the previously
     # executed subreddit url.
     REDDIT_API_URL_TOP = os.getenv("REDDIT_API_URL_TOP")
     REDDIT_API_URL_TOP = REDDIT_API_URL_TOP.replace("placeholder_value", subreddit)
 
     daily_upload = DailyUpload(subreddit=subreddit)
-    reddit_account = RedditAccount(subreddit=subreddit, ddb=ddb)
+    reddit_account = RedditAccount(
+        subreddit=subreddit,
+        ddb=ddb,
+        REDDIT_ACCOUNTS_TABLE_NAME=REDDIT_ACCOUNTS_TABLE_NAME,
+        REDDIT_AUTH_URL=REDDIT_AUTH_URL,
+    )
 
-    # Fetch account details from reddit accounts table and update object
-    reddit_account.fetch_and_update_account_details(REDDIT_ACCOUNTS_TABLE_NAME)
-
-    # Authenticate with reddit api and fetch access token
-    reddit_account.authenticate_with_api()
-    reddit_account.fetch_and_update_access_token(REDDIT_AUTH_URL)
+    print(f"Subreddit : {subreddit} is being processed")
 
     # Keep fetching and parsing posts from reddit api till daily_upload.total_duration
     # is more than 600 seconds. Will use the 'after' param to keep going backwards.
     after = None
     while daily_upload.total_duration < 601:
+        print(f"Fetching {subreddit} posts after {after}")
         posts = reddit_account.fetch_posts_as_json(
             REDDIT_API_URL_TOP, params={"limit": "100", "after": after}
         )
@@ -71,7 +79,11 @@ def run(event, context):
         )
 
         if res["ResponseMetadata"]["HTTPStatusCode"] != 200:
-            raise Exception("Failed to write transaction")
+            raise Exception(
+                f"Failed to write transaction for {subreddit} on {daily_upload.date}"
+            )
+
+        print(f"Successfully updated DB for {subreddit} subreddit")
 
     except Exception as e:
         print(e)
@@ -108,6 +120,7 @@ def run(event, context):
         print(e)
         return {"error": e}
 
+    print(f"{subreddit} subreddit has updated todays_subreddit_count ")
     # Extract items from response
     items = [response["Item"] for response in res["Responses"]]
 
@@ -116,20 +129,29 @@ def run(event, context):
         DailyUpload.deserialize_PK_SK_count(item) for item in items
     ]
 
-    # If evaluates to true, then push subreddit groups to download-videos-SQS
+    # If evaluates to true, then push subreddit groups to ProcessUrlsQueue
     if (
         total_subreddits_item_deserialized["count"]
         == todays_subreddit_item_deserialized["count"]
     ):
-        # Add code here to push to SQS
-        # and then send custom response to show today's urls of all subreddits have been processed.
+        push_subreddit_groups_to_queue()
+
+        # and then send custom response to show today's urls
+        # of all subreddits have been processed.
         return {
-            "success": f"All subreddits have been processed and uploaded urls for date {daily_upload.date}"
+            "success": f"All subreddits have been processed and uploaded urls for date {daily_upload.date}.\nPushed subreddit_groups to: {PROCESS_URLS_QUEUE_URL}"
         }
 
     return {
         subreddit: f"successfully processed {subreddit} for date: {daily_upload.date}"
     }
+
+
+def push_subreddit_groups_to_queue():
+    for group in subreddit_groups:
+        res = sqs.send_message(
+            QueueUrl=PROCESS_URLS_FOR_SUBREDDIT_GROUP_QUEUE_URL, MessageBody=group
+        )
 
 
 # while daily_upload.total_duration < 601:
