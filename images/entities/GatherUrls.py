@@ -1,11 +1,11 @@
 from datetime import datetime
-
-# import pandas as pd
-
 import ddb_helpers
+import pprint
+
+pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 
-class DailyUpload:
+class GatherUrls:
     post_keys_to_keep = [
         "title",
         "url",
@@ -16,14 +16,14 @@ class DailyUpload:
         "total_awards_received",
     ]
 
-    def __init__(self, subreddit) -> None:
+    def __init__(self, subreddit, logger) -> None:
         self.subreddit = subreddit
         self.date = str(datetime.today().date())  ## Of the format yyyy-mm-dd
         self.total_duration = 0
         self.urls = []
-        # self.df_top = pd.DataFrame()
         self.latest_post = None
         self.eligible_posts = []
+        self.logger = logger
 
     # Renamed from date_subreddit_key()
     def key(self) -> dict:
@@ -34,19 +34,10 @@ class DailyUpload:
         """
 
         return {
-            "PK": DailyUpload.__serialize_date(self.date),
-            "SK": DailyUpload.__serialize_subreddit(self.subreddit),
+            "PK": GatherUrls.__serialize_date(self.date),
+            "SK": GatherUrls.__serialize_subreddit(self.subreddit),
         }
 
-    # def subreddit_date_key(self) -> dict:
-    #     """Returns a dictionary with subreddit as PK date as SK.
-
-    #     Returns:
-    #         Dict: Containing serialized subreddit and date.
-    #     """
-    # return {"PK": self.__serialize_subreddit(), "SK": self.__serialize_date()}
-
-    # Renamed from serialize_date_subreddit()
     def serialize_to_item(self):
         """Serializes member variable data of this object for the access pattern:
         date-Partition Key
@@ -56,7 +47,9 @@ class DailyUpload:
             Dict: Ready to be used by boto3 to insert item into DynamoDB.
         """
         item = self.key()
-        item["posts"] = DailyUpload.__serialize_posts(self.eligible_posts)
+        item["posts"] = GatherUrls.__serialize_posts(self.eligible_posts)
+        self.logger.info("Serialized item is:\n")
+        self.logger.info(pp.pformat(item))
         return item
 
     @staticmethod
@@ -88,29 +81,50 @@ class DailyUpload:
             posts (list): List of posts from reddit API
         """
         posts = posts["data"]["children"]
+        self.logger.info(f"For {self.subreddit} on date: {self.date}")
+        duration = 0
         for post in posts:
             post = post["data"]
             self.latest_post = post
-
-            if DailyUpload.__is_eligible(post) and DailyUpload.__removed_post_is_worthy(
+            if GatherUrls.__is_eligible(post) and GatherUrls.__removed_post_is_worthy(
                 post
             ):
 
-                temp = {key: post[key] for key in DailyUpload.post_keys_to_keep}
+                temp = {key: post[key] for key in GatherUrls.post_keys_to_keep}
                 self.eligible_posts.append(temp)
-                self.total_duration += int(post["media"]["reddit_video"]["duration"])
+                duration = int(post["media"]["reddit_video"]["duration"])
+                self.total_duration += duration
+                self.logger.info(
+                    f"Post:\nTitle: {post['title']}\nDuration: {duration}s\nwas added to eligible posts\n"
+                )
+
+        self.logger.info(
+            f"Total duration for {self.subreddit} subreddit on {self.date} is {self.total_duration}\n"
+        )
 
     @staticmethod
     def __serialize_posts(posts):
-        serialized_posts = {"L": [DailyUpload.__serialize_post(post) for post in posts]}
-
+        serialized_posts = {"L": [GatherUrls.__serialize_post(post) for post in posts]}
         return serialized_posts
+
+    @staticmethod
+    def deserialize_from_item(serialized_item):
+        deserialized_item = {}
+        serialized_item = serialized_item["Item"]
+
+        for key, value in serialized_item.items():
+            for _key, _value in value.items():
+                deserialized_item[key] = ddb_helpers.deserialize_piece_of_item(
+                    _key, _value
+                )
+
+        return deserialized_item
 
     @staticmethod
     def __serialize_post(post):
         serialized_post = {"M": {}}
 
-        for key in DailyUpload.post_keys_to_keep:
+        for key in GatherUrls.post_keys_to_keep:
             serialized_post["M"][key] = {
                 ddb_helpers.get_datatype(post[key]): str(post[key])
             }
@@ -125,9 +139,6 @@ class DailyUpload:
     def __serialize_date(date):
         return {"S": date}
 
-    def deserialize_date_subreddit(item):
-        pass
-
     @staticmethod
     def deserialize_PK_SK_count(item):
         deserialized_item = {}
@@ -135,9 +146,6 @@ class DailyUpload:
             for _key, _value in value.items():
                 deserialized_item[key] = _value
         return deserialized_item
-
-    def deserialize_subreddit_postID(item):
-        pass
 
 
 # self.df_top = self.df_top.append(

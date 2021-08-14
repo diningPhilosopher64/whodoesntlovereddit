@@ -1,8 +1,12 @@
-import requests
+import requests, logging, pprint
+import ddb_helpers
+from ddb_helpers.Exceptions import InvalidCredentialsProvidedException
+
+pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 
 class RedditAccount:
-    def __init__(self, subreddit, ddb, REDDIT_ACCOUNTS_TABLE_NAME, REDDIT_AUTH_URL):
+    def __init__(self, subreddit, ddb, logger):
         self.subreddit = subreddit
         self.client_id = None
         self.secret_key = None
@@ -13,33 +17,30 @@ class RedditAccount:
         self.data = {"grant_type": "password", "username": None, "password": None}
         self.access_token = None
         self.ddb = ddb
-
-        # Prepare this object for fetching posts.
-        self.__fetch_and_update_account_details(
-            REDDIT_ACCOUNTS_TABLE_NAME=REDDIT_ACCOUNTS_TABLE_NAME
-        )
-        self.__authenticate_with_api()
-        self.__fetch_and_update_access_token(REDDIT_AUTH_URL=REDDIT_AUTH_URL)
+        self.logger = logger
 
     def key(self):
         return {"PK": {"S": self.subreddit}}
 
-    def __fetch_and_update_account_details(self, REDDIT_ACCOUNTS_TABLE_NAME):
-        try:
-            response = self.ddb.get_item(
-                TableName=REDDIT_ACCOUNTS_TABLE_NAME, Key=self.key()
-            )
-            item = RedditAccount.deserialize_item(response["Item"])
-            self.client_id = item["personal_use_script"]
-            self.secret_key = item["secret_key"]
-            self.username = item["username"]
-            self.password = item["password"]
+    def fetch_and_update_account_details(self, REDDIT_ACCOUNTS_TABLE_NAME):
 
-        except Exception as e:
-            print(f"Failed with exception: {e}")
+        item = ddb_helpers.get_item(
+            ddb=self.ddb,
+            TableName=REDDIT_ACCOUNTS_TABLE_NAME,
+            Key=self.key(),
+            logger=self.logger,
+        )
 
+        item = RedditAccount.deserialize_item(item)
+
+        self.client_id = item["personal_use_script"]
+        self.secret_key = item["secret_key"]
+        self.username = item["username"]
+        self.password = item["password"]
         self.data["username"] = self.username
         self.data["password"] = self.password
+        self.logger.info("Fetched and updated the following account details:\n")
+        self.logger.info(pp.pformat(item))
 
     @staticmethod
     def deserialize_item(item):
@@ -56,17 +57,46 @@ class RedditAccount:
         if data_type == "S":
             return value
 
-    def __authenticate_with_api(self):
+    def authenticate_with_api(self):
         self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.secret_key)
 
-    def __fetch_and_update_access_token(self, REDDIT_AUTH_URL):
-        # Authorise and request for access token from Reddit API
-        res = requests.post(
-            REDDIT_AUTH_URL, auth=self.auth, data=self.data, headers=self.headers
-        )
-        self.access_token = res.json()["access_token"]
+    def fetch_and_update_access_token(self, REDDIT_AUTH_URL):
+        try:
+            # Authorise and request for access token from Reddit API
+            res = requests.post(
+                REDDIT_AUTH_URL, auth=self.auth, data=self.data, headers=self.headers
+            )
+
+            res = res.json()
+            if "error" in res and res["error"] == 401:
+                raise InvalidCredentialsProvidedException()
+
+        except (InvalidCredentialsProvidedException, Exception):
+            self.logger.error(f"Response object contains:\n")
+            self.logger.error(pp.pformat(res))
+            self.logger.error(
+                "Invalid Credentials. The following details were provided:\n"
+            )
+            self.logger.error(
+                f"Requests auth object:\nusername: {self.auth.username}\npassword: {self.auth.password}\n"
+            )
+            self.logger.error(f"Data provided in the POST request:\n")
+            self.logger.error(pp.pformat(self.headers))
+            self.logger.error(f"Headers present in the POST request:\n")
+            self.logger.error(pp.pformat(self.headers))
+
+        self.access_token = res["access_token"]
         self.headers["Authorization"] = f"bearer {self.access_token}"
 
     def fetch_posts_as_json(self, url, params={}):
-        res = requests.get(url, headers=self.headers, params=params)
-        return res.json()
+        try:
+            res = requests.get(url, headers=self.headers, params=params)
+            return res.json()
+
+        except Exception as err:
+            self.logger.error(f"Unable to fetch posts from Reddit")
+            self.logger.error("Headers used:\n")
+            self.logger.error(pp.pformat(self.headers))
+            self.logger.error(f"URL to fetch posts from: {url}\n"))
+            self.logger.error("params passed were:\n")
+            self.logger.error(pp.pformat(params))

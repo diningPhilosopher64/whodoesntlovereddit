@@ -89,6 +89,6 @@ functions:
   - check_for_new_subreddits_and_push_to_sqs: ${file(lambdas/check_for_new_subreddits_and_push_to_sqs/generic.yml):function}
   - pick_from_sqs_and_preprocess: ${file(lambdas/pick_from_sqs_and_preprocess/generic.yml):function}
   - first_lambda_container: ${file(lambdas/first_lambda_container/generic.yml):function}
-  - daily_uploads_gather_urls: ${file(lambdas/daily_uploads_gather_urls/generic.yml):function}
+  - daily_uploads_gather_urls: ${file(lambdas/daily_uploads/gather_urls/generic.yml):function}
 
  

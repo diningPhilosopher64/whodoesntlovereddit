@@ -1,4 +1,4 @@
-subreddits =  [ 
-				"idiotsincars",
-				"funny",			
+subreddits = [
+    "abruptchaos",
+    "funny",
 ]
