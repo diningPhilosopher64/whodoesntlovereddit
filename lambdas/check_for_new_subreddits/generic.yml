@@ -3,7 +3,7 @@ function:
   image:
     name: daily_uploads
     command: 
-      - daily_uploads.check_for_subreddits.run
+      - daily_uploads.check_for_new_subreddits.run
   # handler: lambdas/check_for_new_subreddits_and_push_to_sqs/handler.check
   # events:
   #   # - schedule: cron(0 15 * * ? *)

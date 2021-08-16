@@ -48,8 +48,8 @@ class GatherUrls:
         """
         item = self.key()
         item["posts"] = GatherUrls.__serialize_posts(self.eligible_posts)
-        self.logger.info("Serialized item is:\n")
-        self.logger.info(pp.pformat(item))
+        self.logger.info("Serialized item is successfully")
+        # self.logger.info(pp.pformat(item))
         return item
 
     @staticmethod
@@ -126,7 +126,7 @@ class GatherUrls:
 
         for key in GatherUrls.post_keys_to_keep:
             serialized_post["M"][key] = {
-                helpers.ddb.get_datatype(post[key]): str(post[key])
+                ddb_helpers.get_datatype(post[key]): str(post[key])
             }
 
         return serialized_post

@@ -3,9 +3,9 @@ from pathlib import Path
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
-# Initialize log config.
-logging.basicConfig(level=logging.INFO)
+# Initialize logger and its config.
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Making the current directory in which this file is in discoverable to python
 sys.path.append(os.path.join(os.path.dirname(__file__)))
@@ -13,6 +13,9 @@ sys.path.append(os.path.join(os.path.dirname(__file__)))
 from entities.GatherUrls import GatherUrls
 from entities.RedditAccount import RedditAccount
 from helpers import ddb as ddb_helpers
+from helpers import sqs as sqs_helpers
+
+from daily_uploads.subredditList import subreddits as all_subreddits
 
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
@@ -21,6 +24,9 @@ sqs = boto3.client("sqs")
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
 DAILY_UPLOADS_TABLE_NAME = os.getenv("DAILY_UPLOADS_TABLE_NAME")
+DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL = os.getenv(
+    "DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL"
+)
 
 
 def run(event, context):
@@ -86,11 +92,32 @@ def run(event, context):
         f"Successfully updated DB for {subreddit} subreddit on {gather_urls.date}"
     )
 
+    push_subreddits_to_queue(logger)
+
     res[
         "subreddit"
-    ] = f"successfully gathered urls for subreddit: {subreddit}  on : {gather_urls.date}."
+    ] = f"successfully gathered posts for subreddit: {subreddit}  on : {gather_urls.date} and pushed to {DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL} for processing."
 
     return res
+
+
+def push_subreddits_to_queue(logger):
+    # TODO: Look at avg running time of daily_uploads_process_posts lambda
+    # and update delay_seconds in the for loop.
+    delay_seconds = 0
+    params = {
+        "QueueUrl": DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL,
+        "MessageBody": None,
+        "DelaySeconds": delay_seconds,
+    }
+
+    for subreddit in all_subreddits:
+        params["MessageBody"] = subreddit
+        params["DelaySeconds"] = delay_seconds
+        res = sqs_helpers.send_message(sqs, logger, **params)
+
+        # TODO: Update this accordingly
+        # delay_seconds += 10
 
     # # Prepping up for fetching todays_subreddits_count an total_subreddits_count from DailyUploads table.
     # key = gather_urls.key()

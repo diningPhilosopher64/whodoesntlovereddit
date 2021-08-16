@@ -31,7 +31,7 @@ provider:
     REDDIT_API_URL_TOP: 'https://oauth.reddit.com/r/placeholder_value/top'
     DAILY_UPLOADS_GATHER_POSTS_FOR_A_SUBREDDIT_QUEUE_URL: ${self:custom.DailyUploadsGatherPostsForASubredditQueue.name}  
     DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL: ${self:custom.DailyUploadsProcessPostsForASubredditQueue.name}  
-    PROCESS_URLS_FOR_SUBREDDIT_GROUP_QUEUE_URL: ${self:custom.ProcessUrlsForSubredditGroupQueue.name}  
+    # PROCESS_URLS_FOR_SUBREDDIT_GROUP_QUEUE_URL: ${self:custom.ProcessUrlsForSubredditGroupQueue.name}  
 
   ecr:
     images:
@@ -63,7 +63,7 @@ resources:
     RedditAccountsTable: ${file(resources/Tables/RedditAccountsTable.yml):RedditAccountsTable}
     DailyUploadsGatherPostsForASubredditQueue: ${file(resources/Queues/daily_uploads/GatherPostsForASubreddit.yml):resource}
     DailyUploadsProcessPostsForASubredditQueue: ${file(resources/Queues/daily_uploads/ProcessPostsForASubreddit.yml):resource}
-    ProcessUrlsForSubredditGroupQueue: ${file(resources/Queues/ProcessUrlsForSubredditGroup.yml):resource}
+    # ProcessPostsForASubredditQueue: ${file(resources/Queues/ProcessPostsForASubreddit.yml):resource}
 
 custom:
   DailyUploadsTable:
@@ -86,15 +86,15 @@ custom:
     name: !Ref DailyUploadsProcessPostsForASubredditQueue
     arn: !GetAtt DailyUploadsProcessPostsForASubredditQueue.Arn
     
-  ProcessUrlsForSubredditGroupQueue:
-    name: !Ref ProcessUrlsForSubredditGroupQueue
-    arn: !GetAtt ProcessUrlsForSubredditGroupQueue.Arn
+  # ProcessPostsForSubredditGroupQueue:
+  #   name: !Ref ProcessUrlsForSubredditGroupQueue
+  #   arn: !GetAtt ProcessUrlsForSubredditGroupQueue.Arn
 
 functions:
   # - update_db_wakeup_ec2s: ${file(lambdas/update_db_wakeup_ec2s/generic.yml):function}
   - check_for_new_subreddits: ${file(lambdas/check_for_new_subreddits/generic.yml):function}
   # - pick_from_sqs_and_preprocess: ${file(lambdas/pick_from_sqs_and_preprocess/generic.yml):function}
   # - first_lambda_container: ${file(lambdas/first_lambda_container/generic.yml):function}
-  - daily_uploads_gather_urls: ${file(lambdas/daily_uploads/gather_urls/generic.yml):function}
+  - daily_uploads_gather_posts: ${file(lambdas/daily_uploads/gather_posts/generic.yml):function}
 
  

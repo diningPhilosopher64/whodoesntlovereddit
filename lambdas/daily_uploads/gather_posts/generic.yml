@@ -3,13 +3,13 @@ function:
   image:
     name: daily_uploads
     command: 
-      - daily_uploads.gather_urls.run
+      - daily_uploads.gather_posts.run
   events:
     - sqs: 
         arn: ${self:custom.DailyUploadsGatherPostsForASubredditQueue.arn}
         batchSize: 1
 
-  iamRoleStatementsName: RedditAccountsTable-get
+  iamRoleStatementsName: GatherPostsForASubreddit
   iamRoleStatements:
     - Effect: "Allow"
       Action:
@@ -27,7 +27,8 @@ function:
       Action:
         - dynamodb:GetItem
         - dynamodb:PutItem
-        - dynamodb:Scan
+        - dynamodb:UpdateItem
+        - dynamodb:ConditionCheckItem
       Resource:
         - ${self:custom.DailyUploadsTable.arn}
       

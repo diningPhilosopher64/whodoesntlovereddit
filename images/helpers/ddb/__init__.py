@@ -36,7 +36,7 @@ def get_item(ddb, logger, **kwargs) -> dict:
                 f"Item: {kwargs['Key']} not found in the table: {kwargs['TableName']}"
             )
         return_value = resp["Item"]
-        logger.info("Received the following item:")
+        logger.info("Received the following item from db:\n")
         logger.info(pp.pformat(return_value))
 
     except RequestedItemNotFoundException as err:
@@ -74,7 +74,7 @@ def transact_write_items(ddb, logger, **kwargs):
     try:
         resp = ddb.transact_write_items(**kwargs)
         return_value = resp
-        logger.info("Received the following item:")
+        logger.info("Received the following item from db:\n")
         logger.info(pp.pformat(return_value))
 
     except ddb.exceptions.TransactionCanceledException as err:

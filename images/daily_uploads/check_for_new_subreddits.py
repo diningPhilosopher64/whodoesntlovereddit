@@ -3,9 +3,9 @@ from datetime import datetime
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
-# Initialize log config.
-logging.basicConfig(level=logging.INFO)
+# Initialize logger and its config.
 logger = logging.getLogger()
+logger.setLevel(logging.INFO)
 
 # Added the below 2 lines to let python discover files other than the handler
 # ie. enabled relative imports with the below 2 lines.
@@ -32,15 +32,25 @@ ddb = boto3.client("dynamodb", region_name="ap-south-1")
 
 
 def push_subreddits_to_queue(logger):
-    todays_date = str(datetime.today().date())
+    """Push subreddits to queue with a delay of 10 seconds.
+    Delay is added to re-run the code in a warm container.
+
+
+    Args:
+        logger (logger): Logger instance.
+    """
+    delay_seconds = 0
     params = {
         "QueueUrl": DAILY_UPLOADS_GATHER_POSTS_FOR_A_SUBREDDIT_QUEUE_URL,
         "MessageBody": None,
+        "DelaySeconds": delay_seconds,
     }
 
     for subreddit in all_subreddits:
         params["MessageBody"] = subreddit
+        params["DelaySeconds"] = delay_seconds
         res = sqs_helpers.send_message(sqs, logger, **params)
+        delay_seconds += 10
 
 
 def run(event, context):
@@ -74,5 +84,7 @@ def run(event, context):
         ]
     }
     resp = ddb_helpers.transact_write_items(ddb, logger, **params)
+
+    resp["status_code"] = 200 if "error" not in resp else 500
 
     return resp
