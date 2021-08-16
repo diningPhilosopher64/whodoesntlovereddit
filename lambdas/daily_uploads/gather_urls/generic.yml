@@ -1,12 +1,12 @@
 function:
   memorySize: 512
   image:
-    name: daily_uploads_gather_urls_image
+    name: daily_uploads
     command: 
-      - daily_uploads_gather_urls.run
+      - daily_uploads.gather_urls.run
   events:
     - sqs: 
-        arn: ${self:custom.GatherUrlsForASubredditQueue.arn}
+        arn: ${self:custom.DailyUploadsGatherPostsForASubredditQueue.arn}
         batchSize: 1
 
   iamRoleStatementsName: RedditAccountsTable-get
@@ -15,7 +15,7 @@ function:
       Action:
         - sqs:ReceiveMessage
       Resource:
-        - ${self:custom.GatherUrlsForASubredditQueue.arn}
+        - ${self:custom.DailyUploadsGatherPostsForASubredditQueue.arn}
 
     - Effect: "Allow"
       Action:
@@ -35,4 +35,4 @@ function:
       Action:
         - sqs:SendMessage
       Resource:
-        - ${self:custom.ProcessUrlsForSubredditGroupQueue.arn}
+        - ${self:custom.DailyUploadsProcessPostsForASubredditQueue.arn}

@@ -1,6 +1,6 @@
 import requests, logging, pprint
-import ddb_helpers
-from ddb_helpers.Exceptions import InvalidCredentialsProvidedException
+from helpers.Exceptions import InvalidCredentialsProvidedException
+from helpers import ddb as ddb_helpers
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
@@ -23,39 +23,29 @@ class RedditAccount:
         return {"PK": {"S": self.subreddit}}
 
     def fetch_and_update_account_details(self, REDDIT_ACCOUNTS_TABLE_NAME):
+        params = {"TableName": REDDIT_ACCOUNTS_TABLE_NAME, "Key": self.key()}
+        item = ddb_helpers.get_item(ddb=self.ddb, logger=self.logger, **params)
+        deserialized_item = RedditAccount.deserialize_item(item)
 
-        item = ddb_helpers.get_item(
-            ddb=self.ddb,
-            TableName=REDDIT_ACCOUNTS_TABLE_NAME,
-            Key=self.key(),
-            logger=self.logger,
-        )
-
-        item = RedditAccount.deserialize_item(item)
-
-        self.client_id = item["personal_use_script"]
-        self.secret_key = item["secret_key"]
-        self.username = item["username"]
-        self.password = item["password"]
+        self.client_id = deserialized_item["personal_use_script"]
+        self.secret_key = deserialized_item["secret_key"]
+        self.username = deserialized_item["username"]
+        self.password = deserialized_item["password"]
         self.data["username"] = self.username
         self.data["password"] = self.password
         self.logger.info("Fetched and updated the following account details:\n")
-        self.logger.info(pp.pformat(item))
+        self.logger.info(pp.pformat(deserialized_item))
 
     @staticmethod
     def deserialize_item(item):
-        new_item = {}
-        for key in item:
-            new_item[key] = RedditAccount.extract_value(item[key])
+        deserialized_item = {}
+        for key, value in item.items():
+            for _key, _value in value.items():
+                deserialized_item[key] = ddb_helpers.deserialize_piece_of_item(
+                    _key, _value
+                )
 
-        return new_item
-
-    @staticmethod
-    def extract_value(dictionary):
-        data_type, value = list(dictionary.keys())[0], list(dictionary.values())[0]
-
-        if data_type == "S":
-            return value
+        return deserialized_item
 
     def authenticate_with_api(self):
         self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.secret_key)
@@ -97,6 +87,6 @@ class RedditAccount:
             self.logger.error(f"Unable to fetch posts from Reddit")
             self.logger.error("Headers used:\n")
             self.logger.error(pp.pformat(self.headers))
-            self.logger.error(f"URL to fetch posts from: {url}\n"))
+            self.logger.error(f"URL to fetch posts from: {url}\n")
             self.logger.error("params passed were:\n")
             self.logger.error(pp.pformat(params))

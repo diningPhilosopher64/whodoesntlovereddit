@@ -1,4 +1,3 @@
 subreddits = [
-    "abruptchaos",
     "funny",
 ]

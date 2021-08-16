@@ -1,6 +1,6 @@
 from datetime import datetime
-import ddb_helpers
 import pprint
+from helpers import ddb as ddb_helpers
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
@@ -126,7 +126,7 @@ class GatherUrls:
 
         for key in GatherUrls.post_keys_to_keep:
             serialized_post["M"][key] = {
-                ddb_helpers.get_datatype(post[key]): str(post[key])
+                helpers.ddb.get_datatype(post[key]): str(post[key])
             }
 
         return serialized_post

@@ -1,5 +1,10 @@
 function:
-  handler: lambdas/check_for_new_subreddits_and_push_to_sqs/handler.check
+  memorySize: 256
+  image:
+    name: daily_uploads
+    command: 
+      - daily_uploads.check_for_subreddits.run
+  # handler: lambdas/check_for_new_subreddits_and_push_to_sqs/handler.check
   # events:
   #   # - schedule: cron(0 15 * * ? *)
   #   # - schedule: rate(1 minute)
@@ -10,7 +15,7 @@ function:
       Action:
         - sqs:SendMessage
       Resource:
-        - ${self:custom.GatherUrlsForASubredditQueue.arn}
+        - ${self:custom.DailyUploadsGatherPostsForASubredditQueue.arn}
 
     - Effect: "Allow"
       Action:
