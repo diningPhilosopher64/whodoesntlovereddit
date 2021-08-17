@@ -5,7 +5,7 @@ from helpers import ddb as ddb_helpers
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 
-class GatherUrls:
+class GatherPosts:
     post_keys_to_keep = [
         "title",
         "url",
@@ -34,8 +34,8 @@ class GatherUrls:
         """
 
         return {
-            "PK": GatherUrls.__serialize_date(self.date),
-            "SK": GatherUrls.__serialize_subreddit(self.subreddit),
+            "PK": GatherPosts.__serialize_date(self.date),
+            "SK": GatherPosts.__serialize_subreddit(self.subreddit),
         }
 
     def serialize_to_item(self):
@@ -47,7 +47,7 @@ class GatherUrls:
             Dict: Ready to be used by boto3 to insert item into DynamoDB.
         """
         item = self.key()
-        item["posts"] = GatherUrls.__serialize_posts(self.eligible_posts)
+        item["posts"] = GatherPosts.__serialize_posts(self.eligible_posts)
         self.logger.info("Serialized item is successfully")
         # self.logger.info(pp.pformat(item))
         return item
@@ -86,11 +86,11 @@ class GatherUrls:
         for post in posts:
             post = post["data"]
             self.latest_post = post
-            if GatherUrls.__is_eligible(post) and GatherUrls.__removed_post_is_worthy(
+            if GatherPosts.__is_eligible(post) and GatherPosts.__removed_post_is_worthy(
                 post
             ):
 
-                temp = {key: post[key] for key in GatherUrls.post_keys_to_keep}
+                temp = {key: post[key] for key in GatherPosts.post_keys_to_keep}
                 self.eligible_posts.append(temp)
                 duration = int(post["media"]["reddit_video"]["duration"])
                 self.total_duration += duration
@@ -104,13 +104,12 @@ class GatherUrls:
 
     @staticmethod
     def __serialize_posts(posts):
-        serialized_posts = {"L": [GatherUrls.__serialize_post(post) for post in posts]}
+        serialized_posts = {"L": [GatherPosts.__serialize_post(post) for post in posts]}
         return serialized_posts
 
     @staticmethod
     def deserialize_from_item(serialized_item):
         deserialized_item = {}
-        serialized_item = serialized_item["Item"]
 
         for key, value in serialized_item.items():
             for _key, _value in value.items():
@@ -124,7 +123,7 @@ class GatherUrls:
     def __serialize_post(post):
         serialized_post = {"M": {}}
 
-        for key in GatherUrls.post_keys_to_keep:
+        for key in GatherPosts.post_keys_to_keep:
             serialized_post["M"][key] = {
                 ddb_helpers.get_datatype(post[key]): str(post[key])
             }

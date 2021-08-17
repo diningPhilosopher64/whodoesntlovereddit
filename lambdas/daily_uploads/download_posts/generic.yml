@@ -1,27 +1,35 @@
 function:
-  memorySize: 256
+  memorySize: 1024
+  timeout: 600
   image:
     name: daily_uploads
     command: 
-      - daily_uploads.gather_posts.run
+      - daily_uploads.download_posts.run
   events:
     - sqs: 
-        arn: ${self:custom.DailyUploadsGatherPostsForASubredditQueue.arn}
+        arn: ${self:custom.DailyUploadsDownloadPostsForASubredditQueue.arn}
         batchSize: 1
 
-  iamRoleStatementsName: DailyUploadsGatherPostsForASubreddit
+  iamRoleStatementsName: DailyUploadsDownloadPostsForASubreddit
   iamRoleStatements:
     - Effect: "Allow"
       Action:
         - sqs:ReceiveMessage
       Resource:
-        - ${self:custom.DailyUploadsGatherPostsForASubredditQueue.arn}
+        - ${self:custom.DailyUploadsDownloadPostsForASubredditQueue.arn}
 
     - Effect: "Allow"
       Action:
         - dynamodb:GetItem
       Resource:
-        - ${self:custom.RedditAccountsTable.arn}
+        - ${self:custom.DailyUploadsTable.arn}
+
+    - Effect: "Allow"
+      Action:
+        - s3:CreateBucket
+        - s3:PutObject
+      Resource:
+        - "*"
 
     - Effect: "Allow"
       Action:
@@ -29,11 +37,8 @@ function:
         - dynamodb:PutItem
         - dynamodb:UpdateItem
         - dynamodb:ConditionCheckItem
+        - dynamodb:DeleteItem
       Resource:
         - ${self:custom.DailyUploadsTable.arn}
       
-    - Effect: "Allow"
-      Action:
-        - sqs:SendMessage
-      Resource:
-        - ${self:custom.DailyUploadsDownloadPostsForASubredditQueue.arn}
+    

@@ -36,8 +36,8 @@ def get_item(ddb, logger, **kwargs) -> dict:
                 f"Item: {kwargs['Key']} not found in the table: {kwargs['TableName']}"
             )
         return_value = resp["Item"]
-        logger.info("Received the following item from db:\n")
-        logger.info(pp.pformat(return_value))
+        # logger.info("Received the following item from db:\n")
+        # logger.info(pp.pformat(return_value))
 
     except RequestedItemNotFoundException as err:
         logger.error("Requested Item not found. Failed with error:\n")

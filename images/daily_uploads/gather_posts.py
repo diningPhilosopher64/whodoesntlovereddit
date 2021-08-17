@@ -1,4 +1,5 @@
 import boto3, os, sys, logging, pprint
+from time import time
 from pathlib import Path
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
@@ -10,7 +11,7 @@ logger.setLevel(logging.INFO)
 # Making the current directory in which this file is in discoverable to python
 sys.path.append(os.path.join(os.path.dirname(__file__)))
 
-from entities.GatherUrls import GatherUrls
+from entities.GatherPosts import GatherPosts
 from entities.RedditAccount import RedditAccount
 from helpers import ddb as ddb_helpers
 from helpers import sqs as sqs_helpers
@@ -24,8 +25,8 @@ sqs = boto3.client("sqs")
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
 DAILY_UPLOADS_TABLE_NAME = os.getenv("DAILY_UPLOADS_TABLE_NAME")
-DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL = os.getenv(
-    "DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL"
+DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL = os.getenv(
+    "DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL"
 )
 
 
@@ -34,14 +35,14 @@ def run(event, context):
     # TODO: Hardcoding subreddit value for now. In production, should extract from queue:
     # subreddit = "funny"
     subreddit = str(event["Records"][0]["body"])
-    logger.info(f"Subreddit : {subreddit}, is being processed")
+    logger.info(f"Subreddit : {subreddit}, is being processed at {time()}")
 
     # Getting from env here because, if container is warm, it will fetch from the previously
     # executed subreddit url.
     REDDIT_API_URL_TOP = os.getenv("REDDIT_API_URL_TOP")
     REDDIT_API_URL_TOP = REDDIT_API_URL_TOP.replace("placeholder_value", subreddit)
 
-    gather_urls = GatherUrls(subreddit=subreddit, logger=logger)
+    gather_posts = GatherPosts(subreddit=subreddit, logger=logger)
     reddit_account = RedditAccount(subreddit=subreddit, ddb=ddb, logger=logger)
 
     reddit_account.fetch_and_update_account_details(REDDIT_ACCOUNTS_TABLE_NAME)
@@ -51,13 +52,13 @@ def run(event, context):
     # Keep fetching and parsing posts from reddit api till gather_urls.total_duration
     # is more than 600 seconds. Will use the 'after' param to keep going backwards.
     after = None
-    while gather_urls.total_duration < 601:
+    while gather_posts.total_duration < 601:
         logger.info(f"Fetching subreddit: {subreddit} posts after {after}")
         posts = reddit_account.fetch_posts_as_json(
             REDDIT_API_URL_TOP, params={"limit": "100", "after": after}
         )
-        gather_urls.parse_posts(posts)
-        after = gather_urls.latest_post["name"]
+        gather_posts.parse_posts(posts)
+        after = gather_posts.latest_post["name"]
 
     # After uploading this subreddits' urls, update the count of todays_subreddits_count
     # doing this as a transaction.
@@ -67,14 +68,14 @@ def run(event, context):
             {
                 "Put": {
                     "TableName": DAILY_UPLOADS_TABLE_NAME,
-                    "Item": gather_urls.serialize_to_item(),
+                    "Item": gather_posts.serialize_to_item(),
                 }
             },
             {
                 "Update": {
                     "TableName": DAILY_UPLOADS_TABLE_NAME,
                     "Key": {
-                        "PK": {"S": gather_urls.date},
+                        "PK": {"S": gather_posts.date},
                         "SK": {"S": "todays_subreddits_count"},
                     },
                     "ConditionExpression": "attribute_exists(PK) and attribute_exists(SK)",
@@ -89,14 +90,14 @@ def run(event, context):
     res = ddb_helpers.transact_write_items(ddb, logger, **params)
 
     logger.info(
-        f"Successfully updated DB for {subreddit} subreddit on {gather_urls.date}"
+        f"Successfully updated DB for {subreddit} subreddit on {gather_posts.date}"
     )
 
     push_subreddits_to_queue(logger)
 
     res[
         "subreddit"
-    ] = f"successfully gathered posts for subreddit: {subreddit}  on : {gather_urls.date} and pushed to {DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL} for processing."
+    ] = f"successfully gathered posts for subreddit: {subreddit}  on : {gather_posts.date} and pushed to {DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL} for processing."
 
     return res
 
@@ -106,14 +107,20 @@ def push_subreddits_to_queue(logger):
     # and update delay_seconds in the for loop.
     delay_seconds = 0
     params = {
-        "QueueUrl": DAILY_UPLOADS_PROCESS_POSTS_FOR_A_SUBREDDIT_QUEUE_URL,
+        "QueueUrl": DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL,
         "MessageBody": None,
-        "DelaySeconds": delay_seconds,
+        "DelaySeconds": 0,
     }
 
-    for subreddit in all_subreddits:
+    for idx, subreddit in enumerate(all_subreddits):
+        # logger.info(
+        #     f"Pushing subreddit: {subreddit} to {DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL}"
+        # )
         params["MessageBody"] = subreddit
+        # delay_seconds = 0 if idx <= len(all_subreddits) / 2 else 10
+
         params["DelaySeconds"] = delay_seconds
+
         res = sqs_helpers.send_message(sqs, logger, **params)
 
         # TODO: Update this accordingly
@@ -154,7 +161,7 @@ def push_subreddits_to_queue(logger):
 
     # # Deserialize the items and extract total_subreddits_count and todays_subreddits_count items.
     # total_subreddits_item_deserialized, todays_subreddit_item_deserialized = [
-    #     GatherUrls.deserialize_PK_SK_count(item) for item in items
+    #     GatherPosts.deserialize_PK_SK_count(item) for item in items
     # ]
 
     # # If evaluates to true, then push subreddit groups to ProcessUrlsQueue
