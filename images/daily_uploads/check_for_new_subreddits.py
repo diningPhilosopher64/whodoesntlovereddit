@@ -30,6 +30,8 @@ DAILY_UPLOADS_TABLE = os.getenv("DAILY_UPLOADS_TABLE_NAME")
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
 
+from subreddit_groups import subreddit_groups
+
 
 def push_subreddits_to_queue(logger):
     """Push subreddits to queue with a delay of 10 seconds.
@@ -59,6 +61,7 @@ def run(event, context):
     todays_date = str(datetime.today().date())
     total_subreddit_count = str(len(all_subreddits))
 
+    total_subreddit_groups_count = str(len(subreddit_groups))
     params = {
         "TransactItems": [
             {
@@ -78,9 +81,31 @@ def run(event, context):
                         "PK": {"S": todays_date},
                         "SK": {"S": "todays_subreddits_count"},
                         "count": {"N": "0"},
+                        "last_processed_subreddit": {"S": "None"},
                     },
                 }
             },
+            # {
+            #     "Put": {
+            #         "TableName": DAILY_UPLOADS_TABLE,
+            #         "Item": {
+            #             "PK": {"S": todays_date},
+            #             "SK": {"S": "total_subreddit_groups_count"},
+            #             "count": {"N": total_subreddit_groups_count},
+            #         },
+            #     }
+            # },
+            # {
+            #     "Put": {
+            #         "TableName": DAILY_UPLOADS_TABLE,
+            #         "Item": {
+            #             "PK": {"S": todays_date},
+            #             "SK": {"S": "todays_subreddit_groups_count"},
+            #             "count": {"N": "0"},
+            #             "last_processed_subreddit_group": {"S": "None"},
+            #         },
+            #     }
+            # },
         ]
     }
     resp = ddb_helpers.transact_write_items(ddb, logger, **params)

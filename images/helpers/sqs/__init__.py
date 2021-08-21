@@ -28,7 +28,7 @@ def send_message(sqs, logger, **kwargs):
         resp = sqs.send_message(**kwargs)
 
         logger.info(
-            f"Successfully pushed message: {kwargs['MessageBody']} the following message to {kwargs['QueueUrl']}."
+            f"Successfully pushed message: {kwargs['MessageBody']} to {kwargs['QueueUrl']}."
         )
 
         return_value = resp

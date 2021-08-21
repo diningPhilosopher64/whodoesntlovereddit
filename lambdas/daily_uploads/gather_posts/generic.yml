@@ -36,4 +36,4 @@ function:
       Action:
         - sqs:SendMessage
       Resource:
-        - ${self:custom.DailyUploadsDownloadPostsForASubredditQueue.arn}
+        - ${self:custom.DailyUploadsProcessSubredditsGroupQueue.arn}

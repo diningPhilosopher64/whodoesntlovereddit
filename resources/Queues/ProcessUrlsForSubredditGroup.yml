@@ -1,5 +1,0 @@
-resource:
-  Type: AWS::SQS::Queue
-  Properties:
-    QueueName: "ProcessUrlsForSubredditGroupQueue"
-    

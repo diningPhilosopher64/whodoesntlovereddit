@@ -1,1 +1,1 @@
-subreddit_groups = [["funny", "abruptchaos"]]
+subreddit_groups = [["funny"]]

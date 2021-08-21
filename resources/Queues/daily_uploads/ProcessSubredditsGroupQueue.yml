@@ -1,0 +1,6 @@
+resource:
+  Type: AWS::SQS::Queue
+  Properties:
+    QueueName: "ProcessSubredditsGroup"
+    VisibilityTimeout: 600
+    

@@ -7,10 +7,11 @@ from datetime import datetime
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
+from helpers import s3 as s3_helpers
+
 
 class DownloadPosts:
-    def __init__(self, s3, subreddit, posts, bucket_name, logger):
-        self.subreddit = subreddit
+    def __init__(self, s3, posts, bucket_name, logger):
         self.posts = posts
         self.download_cmd = [
             "youtube-dl",
@@ -20,48 +21,56 @@ class DownloadPosts:
             "-o",
             "placeholder_title",
         ]
-        self.download_processes = []
         self.logger = logger
-        self.download_processes_logs = []
-        self.tasks = {}
         self.s3 = s3
         self.bucket_name = bucket_name
 
-        self.__create_s3_bucket()
+        # self.__create_s3_bucket()
 
-    def __create_s3_bucket(self):
-        self.s3.create_bucket(
-            ACL="private",
-            Bucket=self.bucket_name,
-            CreateBucketConfiguration={"LocationConstraint": "ap-south-1"},
-        )
+    # def __create_s3_bucket(self):
+    #     try:
+    #         self.s3.create_bucket(
+    #             ACL="private",
+    #             Bucket=self.bucket_name,
+    #             CreateBucketConfiguration={"LocationConstraint": "ap-south-1"},
+    #         )
+    #     except:
+    #         self.logger.info(
+    #             "Bucket already created. Maybe a mistake made when manually trying things out ?"
+    #         )
+    #         pass
 
     def __download_video_from_post(self, post, logger):
         logger.info(
             f"Process: {os.getpid()} is downloading video from post with title: {post['title']}"
         )
+
+        file_name = post["name"] + ".mp4"
+        file_path = "/tmp/" + file_name
+
         ydl_opts = {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "logger": logging.getLogger(),
-            "outtmpl": "/tmp/" + post["name"],
+            "outtmpl": file_path,
         }
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([post["url"]])
 
-        file_name = post["name"] + ".mp4"
-        file_path = "/tmp/" + file_name
+        # FIXME: Not sure how this will playout with helpers.s3
+        # as this is run as a subprocess.
+        # Try to use helpers.s3.upload_fileobj() sometime later to check if things
+        # outside this method are available to the created subprocess.
 
-        with open(file_path, "rb") as f:
-            self.s3.upload_fileobj(f, self.bucket_name, file_name)
+        # with open(file_path, "rb") as f:
+        #     self.s3.upload_fileobj(f, self.bucket_name, file_name)
 
         logger.info(
             f"Process: {os.getpid()} finished downloading and successfully pushed to s3"
         )
 
-    def download_videos_from_posts(self):
+    def download_videos(self):
         self.logger.info("Downloading videos from posts")
-        parent_connections = []
         processes = []
         posts_completed = []
         start = time()

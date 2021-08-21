@@ -1,0 +1,36 @@
+function:
+  memorySize: 1024
+  timeout: 600
+  image:
+    name: daily_uploads
+    command: 
+      - daily_uploads.process_subreddits_group.run
+  events:
+    - sqs: 
+        arn: ${self:custom.DailyUploadsProcessSubredditsGroupQueue.arn}
+        batchSize: 1
+
+  iamRoleStatementsName: DailyUploadsProcessSubredditsGroup
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - sqs:ReceiveMessage
+      Resource:
+        - ${self:custom.DailyUploadsProcessSubredditsGroupQueue.arn}
+
+    
+    - Effect: "Allow"
+      Action:
+        - dynamodb:GetItem
+      Resource:
+        - ${self:custom.DailyUploadsTable.arn}
+        
+
+    - Effect: "Allow"
+      Action:
+        - s3:CreateBucket
+        - s3:PutObject
+        - s3:ListBucket
+
+      Resource:
+        - "*"

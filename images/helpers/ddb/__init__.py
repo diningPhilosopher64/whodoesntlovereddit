@@ -12,6 +12,41 @@ from helpers.Exceptions import RequestedItemNotFoundException
 from helpers import Exceptions
 
 
+def put_item(ddb, logger, **kwargs) -> dict:
+    """Pass dynamoDb Client, logger and ddb details.
+    TableName, Key in a dict are compulsory kwargs.
+
+    Args:
+        ddb (boto3.client): dynamodb client object
+        logger (logger): For logging purposes
+        **kwargs(dict): Dict containing details about item to get.
+
+    Raises:
+        RequestedItemNotFoundException: Is raised if requested item is not found.
+
+    Returns:
+        dict: response containing the item from ddb.
+    """
+    return_value = {"status_code": 500, "error": "Failed to get item. Check logs"}
+    try:
+        resp = ddb.put_item(**kwargs)
+
+        return_value = {"status_code": 200}
+
+        logger.info("Successfully inserted item to db")
+    except RequestedItemNotFoundException as err:
+        logger.error("Requested Item not found. Failed with error:\n")
+        logger.error(pp.pformat(err))
+
+    except Exception as err:
+        logger.error("Key word arguments passed are:\n")
+        logger.error(pp.pformat(kwargs))
+        Exceptions.log_generic_exception(logger)
+
+    finally:
+        return return_value
+
+
 def get_item(ddb, logger, **kwargs) -> dict:
     """Pass dynamoDb Client, logger and ddb details.
     TableName, Key in a dict are compulsory kwargs.
@@ -52,6 +87,44 @@ def get_item(ddb, logger, **kwargs) -> dict:
         return return_value
 
 
+def transact_get_items(ddb, logger, **kwargs):
+    """Pass dynamoDb Client, logger and ddb details.
+    TransactItems in a dict are compulsory kwargs.
+
+    Args:
+        ddb (boto3.client): dynamodb client object
+        logger (logger): For logging purposes
+        **kwargs(dict): Dict containing details about TransactItems.
+
+    Raises:
+        TransactionCanceledException: Is raised if transaction is canceled.
+
+    Returns:
+        dict: response containing the response after transaction is done.
+    """
+    return_value = {
+        "status_code": 500,
+        "error": "Failed to execute get transaction. Check logs",
+    }
+    try:
+        resp = ddb.transact_get_items(**kwargs)
+        items = resp["Responses"]
+
+        return_value = [item["Item"] for item in items]
+        logger.info("Received the following item from db:\n")
+        logger.info(pp.pformat(return_value))
+
+    except ddb.exceptions.TransactionCanceledException as err:
+        logger.error(f"TransactionCanceledException raised. Details:\nTransactItems:\n")
+        logger.error(pp.pformat(kwargs))
+
+    except Exception:
+        Exceptions.log_generic_exception(logger)
+
+    finally:
+        return return_value
+
+
 def transact_write_items(ddb, logger, **kwargs):
     """Pass dynamoDb Client, logger and ddb details.
     TransactItems in a dict are compulsory kwargs.
@@ -69,7 +142,7 @@ def transact_write_items(ddb, logger, **kwargs):
     """
     return_value = {
         "status_code": 500,
-        "error": "Failed to write transaction. Check logs",
+        "error": "Failed to execute write transaction. Check logs",
     }
     try:
         resp = ddb.transact_write_items(**kwargs)
@@ -82,6 +155,27 @@ def transact_write_items(ddb, logger, **kwargs):
         logger.error(pp.pformat(kwargs))
 
     except Exception:
+        Exceptions.log_generic_exception(logger)
+
+    finally:
+        return return_value
+
+
+def update_item(ddb, logger, **kwargs):
+    return_value = {"status_code": 500, "error": "Failed to get item. Check logs"}
+    try:
+        resp = ddb.update_item(**kwargs)
+
+        if (
+            "ReturnValues" in kwargs
+            and kwargs["ReturnValues"] != "NONE"
+            and "Attributes" not in resp
+        ):
+            raise Exception()
+
+        return_value = resp
+
+    except:
         Exceptions.log_generic_exception(logger)
 
     finally:

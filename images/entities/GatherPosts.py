@@ -25,7 +25,6 @@ class GatherPosts:
         self.eligible_posts = []
         self.logger = logger
 
-    # Renamed from date_subreddit_key()
     def key(self) -> dict:
         """Returns a dictionary with date as PK, subreddit as SK.
 
@@ -48,7 +47,7 @@ class GatherPosts:
         """
         item = self.key()
         item["posts"] = GatherPosts.__serialize_posts(self.eligible_posts)
-        self.logger.info("Serialized item is successfully")
+        self.logger.info("Serialized item successfully")
         # self.logger.info(pp.pformat(item))
         return item
 
@@ -91,13 +90,19 @@ class GatherPosts:
             ):
 
                 temp = {key: post[key] for key in GatherPosts.post_keys_to_keep}
-                self.eligible_posts.append(temp)
+                # Have to handle duration seperately here and
+                # in __serialize_post() because its deeply nested.
                 duration = int(post["media"]["reddit_video"]["duration"])
+                temp["duration"] = duration
+                self.eligible_posts.append(temp)
+
                 self.total_duration += duration
                 self.logger.info(
                     f"Post:\nTitle: {post['title']}\nDuration: {duration}s\nwas added to eligible posts\n"
                 )
 
+        self.logger.info("Eligible posts are ")
+        self.logger.info(pp.pformat(self.eligible_posts))
         self.logger.info(
             f"Total duration for {self.subreddit} subreddit on {self.date} is {self.total_duration}\n"
         )
@@ -127,6 +132,10 @@ class GatherPosts:
             serialized_post["M"][key] = {
                 ddb_helpers.get_datatype(post[key]): str(post[key])
             }
+
+        serialized_post["M"]["duration"] = {
+            ddb_helpers.get_datatype(post["duration"]): str(post["duration"])
+        }
 
         return serialized_post
 

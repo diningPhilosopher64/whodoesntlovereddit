@@ -30,8 +30,9 @@ provider:
     REDDIT_AUTH_URL: 'https://www.reddit.com/api/v1/access_token'
     REDDIT_API_URL_TOP: 'https://oauth.reddit.com/r/placeholder_value/top'
     DAILY_UPLOADS_GATHER_POSTS_FOR_A_SUBREDDIT_QUEUE_URL: ${self:custom.DailyUploadsGatherPostsForASubredditQueue.name}  
-    DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL: ${self:custom.DailyUploadsDownloadPostsForASubredditQueue.name}  
-    # PROCESS_URLS_FOR_SUBREDDIT_GROUP_QUEUE_URL: ${self:custom.ProcessUrlsForSubredditGroupQueue.name}  
+    # DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL: ${self:custom.DailyUploadsDownloadPostsForASubredditQueue.name}  
+    DAILY_UPLOADS_PROCESS_SUBREDDITS_GROUP_QUEUE_URL: ${self:custom.DailyUploadsProcessSubredditsGroupQueue.name}  
+
 
   ecr:
     images:
@@ -62,17 +63,17 @@ resources:
     DailyUploadsTable: ${file(resources/Tables/DailyUploadsTable.yml):DailyUploadsTable}
     RedditAccountsTable: ${file(resources/Tables/RedditAccountsTable.yml):RedditAccountsTable}
     DailyUploadsGatherPostsForASubredditQueue: ${file(resources/Queues/daily_uploads/GatherPostsForASubreddit.yml):resource}
-    DailyUploadsDownloadPostsForASubredditQueue: ${file(resources/Queues/daily_uploads/DownloadPostsForASubreddit.yml):resource}
-    # ProcessPostsForASubredditQueue: ${file(resources/Queues/ProcessPostsForASubreddit.yml):resource}
+    # DailyUploadsDownloadPostsForASubredditQueue: ${file(resources/Queues/daily_uploads/DownloadPostsForASubreddit.yml):resource}
+    DailyUploadsProcessSubredditsGroupQueue: ${file(resources/Queues/daily_uploads/ProcessSubredditsGroupQueue.yml):resource}
 
 custom:
   DailyUploadsTable:
     name: !Ref DailyUploadsTable
     arn: !GetAtt DailyUploadsTable.Arn
 
-  VideoUrlsTable:
-    name: !Ref VideoUrlsTable
-    arn: !GetAtt VideoUrlsTable.Arn
+  # VideoUrlsTable:
+  #   name: !Ref VideoUrlsTable
+  #   arn: !GetAtt VideoUrlsTable.Arn
 
   RedditAccountsTable:
     name: !Ref RedditAccountsTable
@@ -82,13 +83,14 @@ custom:
     name: !Ref DailyUploadsGatherPostsForASubredditQueue
     arn: !GetAtt DailyUploadsGatherPostsForASubredditQueue.Arn
 
-  DailyUploadsDownloadPostsForASubredditQueue:
-    name: !Ref DailyUploadsDownloadPostsForASubredditQueue
-    arn: !GetAtt DailyUploadsDownloadPostsForASubredditQueue.Arn
-    
-  # ProcessPostsForSubredditGroupQueue:
-  #   name: !Ref ProcessUrlsForSubredditGroupQueue
-  #   arn: !GetAtt ProcessUrlsForSubredditGroupQueue.Arn
+  # DailyUploadsDownloadPostsForASubredditQueue:
+  #   name: !Ref DailyUploadsDownloadPostsForASubredditQueue
+  #   arn: !GetAtt DailyUploadsDownloadPostsForASubredditQueue.Arn
+  
+  DailyUploadsProcessSubredditsGroupQueue:
+    name: !Ref DailyUploadsProcessSubredditsGroupQueue
+    arn: !GetAtt DailyUploadsProcessSubredditsGroupQueue.Arn
+  
 
 functions:
   # - update_db_wakeup_ec2s: ${file(lambdas/update_db_wakeup_ec2s/generic.yml):function}
@@ -96,6 +98,7 @@ functions:
   # - pick_from_sqs_and_preprocess: ${file(lambdas/pick_from_sqs_and_preprocess/generic.yml):function}
   # - first_lambda_container: ${file(lambdas/first_lambda_container/generic.yml):function}
   - daily_uploads_gather_posts: ${file(lambdas/daily_uploads/gather_posts/generic.yml):function}
-  - daily_uploads_download_posts: ${file(lambdas/daily_uploads/download_posts/generic.yml):function}
+  - daily_uploads_process_subreddits_group: ${file(lambdas/daily_uploads/process_subreddits_group/generic.yml):function}
+  # - daily_uploads_download_posts: ${file(lambdas/daily_uploads/download_posts/generic.yml):function}
 
  
