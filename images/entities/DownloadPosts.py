@@ -11,7 +11,7 @@ from helpers import s3 as s3_helpers
 
 
 class DownloadPosts:
-    def __init__(self, s3, posts, bucket_name, logger):
+    def __init__(self, s3, posts, bucket_name, logger, download_path="/tmp/"):
         self.posts = posts
         self.download_cmd = [
             "youtube-dl",
@@ -21,6 +21,7 @@ class DownloadPosts:
             "-o",
             "placeholder_title",
         ]
+        self.download_path = download_path
         self.logger = logger
         self.s3 = s3
         self.bucket_name = bucket_name
@@ -40,13 +41,13 @@ class DownloadPosts:
     #         )
     #         pass
 
-    def __download_video_from_post(self, post, logger):
+    def __download_video_from_post(self, post, download_path, logger):
         logger.info(
             f"Process: {os.getpid()} is downloading video from post with title: {post['title']}"
         )
 
         file_name = post["name"] + ".mp4"
-        file_path = "/tmp/" + file_name
+        file_path = download_path + file_name
 
         ydl_opts = {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -77,7 +78,7 @@ class DownloadPosts:
         for post in self.posts:
             process = Process(
                 target=self.__download_video_from_post,
-                args=(post, self.logger),
+                args=(post, self.download_path, self.logger),
             )
             processes.append(process)
 
@@ -90,7 +91,7 @@ class DownloadPosts:
         end = time()
 
         self.logger.info(
-            f"Finished processing {len(posts_completed)} in {round(end - start, 2)} seconds"
+            f"Finished processing {len(self.posts)} in {round(end - start, 2)} seconds"
         )
 
 

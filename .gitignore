@@ -2,6 +2,10 @@
 # My additions
 .venv/
 
+**/*.mp4
+
+**/*.mp3
+
 sandbox/.ipynb_checkpoints/
 
 # Node, npm specific:

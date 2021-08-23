@@ -29,6 +29,28 @@ def bucket_exists(s3, logger, **kwargs) -> bool:
         return False
 
 
+def list_objects_v2(s3, logger, **kwargs):
+    try:
+        resp = s3.list_objects_v2(**kwargs)
+        contents = resp["Contents"]
+        objects = [content["Key"] for content in contents]
+
+        logger.info("Got the following items:")
+        logger.info(pp.pformat(objects))
+        return objects
+
+    except Exception:
+        Exceptions.log_exception(logger)
+
+
+def download_file(s3, logger, **kwargs):
+    try:
+        res = s3.download_file(**kwargs)
+
+    except Exception:
+        Exceptions.log_exception(logger)
+
+
 # def upload_fileobj(s3, bucket_name, file_path, logger):
 #     file_name = file_path.split("/")[-1]
 

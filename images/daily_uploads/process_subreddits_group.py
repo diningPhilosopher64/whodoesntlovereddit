@@ -49,6 +49,14 @@ def run(event, context):
 
     download_posts.download_videos()
 
+    video_processing = VideoProcessing(
+        download_path=download_posts.downloa_path, posts=posts, logger=logger
+    )
+
+    video_processing.process_each_video_in_parallel()
+
+    video_processing.concatenate_videos()
+
 
 # def push_subreddit_group_to_sqs(subreddit_group):
 #     pass

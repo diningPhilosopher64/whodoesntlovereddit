@@ -1,3 +1,5 @@
+At least one output file must be specified
+
 from conf import SAMPLE_INPUTS, SAMPLE_OUTPUTS
 from moviepy.editor import *
 from PIL import Image
