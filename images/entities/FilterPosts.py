@@ -8,10 +8,10 @@ pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 
 class FilterPosts:
-    def __init__(self, ddb, subreddit_group, logger) -> None:
+    def __init__(self, ddb, subreddits_group, logger) -> None:
         self.df_top = pd.DataFrame()
         self.df_filtered = pd.DataFrame()
-        self.subreddit_group = subreddit_group
+        self.subreddits_group = subreddits_group
         self.logger = logger
         self.ddb = ddb
         self.posts_arr = []
@@ -20,7 +20,7 @@ class FilterPosts:
     def get_posts_of_subreddits_from_db(self, TableName):
         transact_items = []
 
-        for subreddit in self.subreddit_group:
+        for subreddit in self.subreddits_group:
             self.gather_posts = GatherPosts(subreddit, self.logger)
             transact_item = {
                 "Get": {
@@ -68,7 +68,9 @@ class FilterPosts:
             duration = row["duration"]
             has_awards = True if row["total_awards_received"] > 0 else False
 
+            # TODO: Change this in production
             if total_duration < 600 or has_awards:
+                # if total_duration < 350:
                 total_duration += row["duration"]
                 self.df_filtered = self.df_filtered.append(row)
 

@@ -6,6 +6,7 @@ RUN yum -y update && \
     yum -y install wget && \
     yum install -y tar.x86_64 && \
     yum install -y xz \
+    yum install -y ImageMagick \
     yum clean all
 
 

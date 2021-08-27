@@ -1,6 +1,7 @@
 import boto3, os, sys, logging, pprint
 from time import time
 
+pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 # Initialize logger and its config.
 logger = logging.getLogger()
@@ -8,6 +9,7 @@ logger.setLevel(logging.INFO)
 
 from entities.FilterPosts import FilterPosts
 from entities.DownloadPosts import DownloadPosts
+from entities.VideoProcessing import VideoProcessing
 from helpers import sqs as sqs_helpers
 from helpers import s3 as s3_helpers
 
@@ -17,24 +19,35 @@ sqs = boto3.client("sqs")
 
 
 DAILY_UPLOADS_TABLE_NAME = os.getenv("DAILY_UPLOADS_TABLE_NAME")
+TRANSITION_CLIPS_BUCKET = os.getenv("TRANSITION_CLIPS_BUCKET")
+INTRO_CLIPS_BUCKET = os.getenv("INTRO_CLIPS_BUCKET")
+AUDIO_CLIPS_BUCKET = os.getenv("AUDIO_CLIPS_BUCKET")
+OUTTRO_CLIPS_BUCKET = os.getenv("OUTTRO_CLIPS_BUCKET")
+LIKE_AND_SUBSCRIBE_CLIPS_BUCKET = os.getenv("LIKE_AND_SUBSCRIBE_CLIPS_BUCKET")
 
 
 def run(event, context):
-
+    # Initialize logger and its config.
+    logger = logging.getLogger()
+    logger.setLevel(logging.INFO)
+    os.chdir("/tmp")
+    logger.info(f"Current working directory is {os.getcwd()}")
     unparsed_subreddit_group = str(event["Records"][0]["body"])
     logger.info(f"Received the following item from SQS: {unparsed_subreddit_group}")
     bucket_name = unparsed_subreddit_group
 
     # TODO: Make this lambda idempotent.
-    if not needs_to_execute(bucket_name, s3, logger):
-        return {"note": f"{bucket_name} bucket already exists. Exiting."}
+    # if not needs_to_execute(bucket_name, s3, logger):
+    #     return {"note": f"{bucket_name} bucket already exists. Exiting."}
 
-    parsed_subreddit_group = parse_subreddit_group(bucket_name)
+    parsed_subreddits_group = parse_subreddits_group(bucket_name)
+    logger.info("Parsed subreddit groups")
+    logger.info(pp.pformat(parsed_subreddits_group))
 
     # posts_arr = get_posts_of_subreddits_from_db(ddb, parsed_subreddit_group, logger)
 
     filter_posts = FilterPosts(
-        ddb, subreddit_group=parsed_subreddit_group, logger=logger
+        ddb, subreddits_group=parsed_subreddits_group, logger=logger
     )
 
     filter_posts.get_posts_of_subreddits_from_db(TableName=DAILY_UPLOADS_TABLE_NAME)
@@ -44,18 +57,127 @@ def run(event, context):
     posts = filter_posts.get_filtered_posts()
 
     download_posts = DownloadPosts(
-        s3=s3, posts=posts, bucket_name=unparsed_subreddit_group, logger=logger
+        s3=s3,
+        posts=posts,
+        bucket_name=unparsed_subreddit_group,
+        logger=logger,
+        # download_path="./tt",
+        # encode_path="./tt/encode",
     )
+    # download_posts.download_videos()
 
-    download_posts.download_videos()
+    total_duration = 0
+    counter = 1
+    current_video = []
+    all_videos = []
+    # As we are dealing with a subreddits group
+    # Duration can easily go over 600 seconds.
+    # For this, keep track of post duration for a video,and  once the video duration is over 600 seconds
+    # Process it as a video and start a new video.
+    for post in posts:
+        # keep track of duration. If more than 10 minutes, start processing the clips as a video.
+        total_duration += post["duration"]
+        current_video.append(post)
+        print(
+            f'Added {current_video[len(current_video)-1]["title"]} to video number {counter}'
+        )
+        if total_duration > 50:
+            print(f"Will be processing the following clips for video number {counter}")
+            print(current_video)
+            process_a_video(
+                encode_path=download_posts.encode_path,
+                current_video=current_video,
+                bucket_name=bucket_name,
+                counter=counter,
+                logger=logger,
+            )
+            all_videos.append(current_video)
+            total_duration = 0
+            counter += 1
+            current_video.clear()
+            if counter > 2:
+                break
 
+    # If the total_duration was less than 600 seconds, and all_videos is empty. This is unlikely edge case.
+    # if total_duration <= 600 and len(all_videos) == 0:
+    #     process_a_video(
+    #         encode_path=download_posts.encode_path,
+    #         current_video=current_video,
+    #         bucket_name=bucket_name,
+    #         counter=counter,
+    #         logger=logger,
+    #     )
+
+
+def process_a_video(
+    encode_path,
+    current_video,
+    bucket_name,
+    counter,
+    logger,
+):
     video_processing = VideoProcessing(
-        download_path=download_posts.downloa_path, posts=posts, logger=logger
+        encode_path=encode_path,
+        posts=current_video,
+        s3=s3,
+        bucket_name=bucket_name,
+        final_video_name=bucket_name + "_" + str(counter),
+        logger=logger,
     )
 
-    video_processing.process_each_video_in_parallel()
+    video_processing.process_videos(
+        TRANSITION_CLIPS_BUCKET,
+        INTRO_CLIPS_BUCKET,
+        OUTTRO_CLIPS_BUCKET,
+        AUDIO_CLIPS_BUCKET,
+    )
 
-    video_processing.concatenate_videos()
+    video_processing.concatenate_videos_and_render()
+
+    print(f"Finished processing video {bucket_name + str(counter)}")
+
+
+def needs_to_execute(bucket_name, s3, logger):
+    params = {"Bucket": bucket_name}
+    if s3_helpers.bucket_exists(s3, logger, **params):
+        logger.info("Exiting")
+        return False
+
+    else:
+        logger.info(f"Going ahead with downloading videos")
+        return True
+
+
+def parse_subreddits_group(subreddits_group) -> list:
+    subreddits_group_arr = subreddits_group.split("-")
+    return subreddits_group_arr[4:]
+
+
+# def push_to_sqs_for_stitching_subreddit_group_videos(todays_date):
+#     from subreddit_groups import subreddit_groups
+
+#     params = {
+#         "QueueUrl": DAILY_UPLOADS_PROCESS_SUBREDDIT_GROUP_QUEUE_URL,
+#         "MessageBody": None,
+#     }
+
+#     for group in subreddit_groups:
+#         group_str = "-".join(group)
+#         group_str = "whodoesntlovereddit" + "-" + todays_date + "-" + group_str
+#         params["MessageBody"] = group_str
+#         sqs_helpers.send_message(sqs, logger, **params
+
+
+# video_processing = VideoProcessing(
+#     encode_path=download_posts.encode_path,
+#     posts=posts,
+#     s3=s3,
+#     bucket_name=bucket_name,
+#     final_video_name=unparsed_subreddit_group,
+#     logger=logger,
+# )
+
+# video_processing.upload_subreddits_group_videos_to_s3()
 
 
 # def push_subreddit_group_to_sqs(subreddit_group):
@@ -91,34 +213,3 @@ def run(event, context):
 #     }
 
 #     ddb_helpers.update_item(ddb, logger, **params)
-
-
-def needs_to_execute(bucket_name, s3, logger):
-    params = {"Bucket": bucket_name}
-    if s3_helpers.bucket_exists(s3, logger, **params):
-        logger.info("Exiting")
-        return False
-
-    else:
-        logger.info(f"Going ahead with downloading videos")
-        return True
-
-
-def parse_subreddit_group(subreddit_group):
-    subreddit_group_arr = subreddit_group.split("-")
-    return subreddit_group_arr[4:]
-
-
-# def push_to_sqs_for_stitching_subreddit_group_videos(todays_date):
-#     from subreddit_groups import subreddit_groups
-
-#     params = {
-#         "QueueUrl": DAILY_UPLOADS_PROCESS_SUBREDDIT_GROUP_QUEUE_URL,
-#         "MessageBody": None,
-#     }
-
-#     for group in subreddit_groups:
-#         group_str = "-".join(group)
-#         group_str = "whodoesntlovereddit" + "-" + todays_date + "-" + group_str
-#         params["MessageBody"] = group_str
-#         sqs_helpers.send_message(sqs, logger, **params

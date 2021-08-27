@@ -119,6 +119,8 @@ def transact_get_items(ddb, logger, **kwargs):
         logger.error(pp.pformat(kwargs))
 
     except Exception:
+        logger.error("Raw data received in kwargs")
+        logger.error(pp.pformat(kwargs))
         Exceptions.log_generic_exception(logger)
 
     finally:
