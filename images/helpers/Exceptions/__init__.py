@@ -18,7 +18,7 @@ class InvalidCredentialsProvidedException(Exception):
     pass
 
 
-def log_generic_exception(logger):
+def log_generic_exception(kwargs, logger):
     exception_type, exception_value, exception_traceback = sys.exc_info()
     traceback_string = traceback.format_exception(
         exception_type, exception_value, exception_traceback
@@ -30,4 +30,6 @@ def log_generic_exception(logger):
             "stackTrace": traceback_string,
         }
     )
+    logger.error("kwargs received are:")
+    logger.error(pp.pformat(kwargs))
     logger.error(pp.pformat(err_msg))

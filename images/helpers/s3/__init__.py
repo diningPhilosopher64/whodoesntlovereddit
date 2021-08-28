@@ -23,7 +23,7 @@ def bucket_exists(s3, logger, **kwargs) -> bool:
             logger.info(f'Bucket {kwargs["Bucket"]} does not exist.')
 
     except Exception:
-        Exceptions.log_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
     finally:
         return False
@@ -40,7 +40,7 @@ def list_objects_v2(s3, logger, **kwargs):
         return objects
 
     except Exception:
-        Exceptions.log_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
 
 def download_file(s3, logger, **kwargs):
@@ -48,7 +48,7 @@ def download_file(s3, logger, **kwargs):
         res = s3.download_file(**kwargs)
 
     except Exception:
-        Exceptions.log_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
 
 # def upload_fileobj(s3, bucket_name, file_path, logger):

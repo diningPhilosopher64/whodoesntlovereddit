@@ -1,5 +1,7 @@
-import boto3, os, sys, logging, pprint
-from time import time
+import boto3, os, sys, logging, pprint, asyncio
+from time import time, time_ns
+from concurrent.futures import ProcessPoolExecutor, as_completed
+from multiprocessing import Process
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
@@ -67,51 +69,46 @@ def run(event, context):
     # download_posts.download_videos()
 
     total_duration = 0
+    MAX_VIDEO_DURATION = 70
+    start_idx = 0
+    idx = 0
     counter = 1
-    current_video = []
-    all_videos = []
-    # As we are dealing with a subreddits group
-    # Duration can easily go over 600 seconds.
-    # For this, keep track of post duration for a video,and  once the video duration is over 600 seconds
-    # Process it as a video and start a new video.
-    for post in posts:
-        # keep track of duration. If more than 10 minutes, start processing the clips as a video.
-        total_duration += post["duration"]
-        current_video.append(post)
-        print(
-            f'Added {current_video[len(current_video)-1]["title"]} to video number {counter}'
-        )
-        if total_duration > 50:
-            print(f"Will be processing the following clips for video number {counter}")
-            print(current_video)
-            process_a_video(
-                encode_path=download_posts.encode_path,
-                current_video=current_video,
-                bucket_name=bucket_name,
-                counter=counter,
-                logger=logger,
-            )
-            all_videos.append(current_video)
+    video_stamps = []
+
+    while idx < len(posts):
+        total_duration += posts[idx]["duration"]
+
+        if total_duration > MAX_VIDEO_DURATION:
+            video_stamps.append((counter, start_idx, idx))
+            start_idx = idx + 1
             total_duration = 0
             counter += 1
-            current_video.clear()
-            if counter > 2:
-                break
 
-    # If the total_duration was less than 600 seconds, and all_videos is empty. This is unlikely edge case.
-    # if total_duration <= 600 and len(all_videos) == 0:
-    #     process_a_video(
-    #         encode_path=download_posts.encode_path,
-    #         current_video=current_video,
-    #         bucket_name=bucket_name,
-    #         counter=counter,
-    #         logger=logger,
-    #     )
+        idx += 1
+
+    video_stamps = video_stamps[0:2]
+
+    for counter, start_stamp, end_stamp in video_stamps:
+        process = Process(
+            target=process_a_video,
+            args=(
+                download_posts.encode_path,
+                posts[start_stamp:end_stamp],
+                s3,
+                bucket_name,
+                counter,
+                logging.getLogger(),
+            ),
+        )
+
+        process.start()
+        process.join()
 
 
 def process_a_video(
     encode_path,
     current_video,
+    s3,
     bucket_name,
     counter,
     logger,
@@ -121,11 +118,13 @@ def process_a_video(
         posts=current_video,
         s3=s3,
         bucket_name=bucket_name,
-        final_video_name=bucket_name + "_" + str(counter),
+        final_video_name=bucket_name + "_" + str(time_ns()),
         logger=logger,
     )
 
-    video_processing.process_videos(
+    print("Processing ", video_processing.final_video_path)
+
+    video_processing.process_video_clips(
         TRANSITION_CLIPS_BUCKET,
         INTRO_CLIPS_BUCKET,
         OUTTRO_CLIPS_BUCKET,
