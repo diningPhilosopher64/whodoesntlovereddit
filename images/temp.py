@@ -9,5 +9,5 @@ logger.setLevel(logging.INFO)
 logger.info("Starting processing")
 
 process_subreddits_group.run(
-    {"Records": [{"body": "whooesntlovereddit-2021-08-25-funny"}]}, {}
+    {"Records": [{"body": "whodoesntlovereddit-2021-09-04-funny"}]}, {}
 )

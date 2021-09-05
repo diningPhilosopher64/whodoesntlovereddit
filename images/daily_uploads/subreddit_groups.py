@@ -1,1 +1,12 @@
-subreddit_groups = [["funny"]]
+subreddit_groups = [
+    ["funny"],
+    [
+        "PeopleFuckingDying",
+        "peopleofwalmart",
+        "PeopleBeingJerks",
+        "WatchPeopleDieInside",
+        "ChildrenFallingOver",
+        "thisismylifenow",
+    ],
+    [],
+]

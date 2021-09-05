@@ -1,7 +1,10 @@
-import boto3, os, sys, logging, pprint, asyncio
+import boto3, os, logging, pprint, subprocess
 from time import time, time_ns
 from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Process
+from datetime import datetime, timedelta
+
+from botocore.retries import bucket
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
@@ -15,6 +18,7 @@ from entities.VideoProcessing import VideoProcessing
 from helpers import sqs as sqs_helpers
 from helpers import s3 as s3_helpers
 
+
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
 s3 = boto3.client("s3")
 sqs = boto3.client("sqs")
@@ -22,7 +26,7 @@ sqs = boto3.client("sqs")
 
 DAILY_UPLOADS_TABLE_NAME = os.getenv("DAILY_UPLOADS_TABLE_NAME")
 TRANSITION_CLIPS_BUCKET = os.getenv("TRANSITION_CLIPS_BUCKET")
-INTRO_CLIPS_BUCKET = os.getenv("INTRO_CLIPS_BUCKET")
+INTRO_VIDEO_CLIPS_BUCKET = os.getenv("INTRO_VIDEO_CLIPS_BUCKET")
 AUDIO_CLIPS_BUCKET = os.getenv("AUDIO_CLIPS_BUCKET")
 OUTTRO_CLIPS_BUCKET = os.getenv("OUTTRO_CLIPS_BUCKET")
 LIKE_AND_SUBSCRIBE_CLIPS_BUCKET = os.getenv("LIKE_AND_SUBSCRIBE_CLIPS_BUCKET")
@@ -32,7 +36,7 @@ def run(event, context):
     # Initialize logger and its config.
     logger = logging.getLogger()
     logger.setLevel(logging.INFO)
-    os.chdir("/tmp")
+    # os.chdir("/tmp")
     logger.info(f"Current working directory is {os.getcwd()}")
     unparsed_subreddit_group = str(event["Records"][0]["body"])
     logger.info(f"Received the following item from SQS: {unparsed_subreddit_group}")
@@ -49,7 +53,10 @@ def run(event, context):
     # posts_arr = get_posts_of_subreddits_from_db(ddb, parsed_subreddit_group, logger)
 
     filter_posts = FilterPosts(
-        ddb, subreddits_group=parsed_subreddits_group, logger=logger
+        ddb=ddb,
+        subreddits_group=parsed_subreddits_group,
+        date=str(datetime.today().date()),
+        logger=logger,
     )
 
     filter_posts.get_posts_of_subreddits_from_db(TableName=DAILY_UPLOADS_TABLE_NAME)
@@ -57,14 +64,37 @@ def run(event, context):
     filter_posts.filter_best_posts()
 
     posts = filter_posts.get_filtered_posts()
+    filter_posts_yesterday = FilterPosts(
+        ddb=ddb,
+        subreddits_group=parsed_subreddits_group,
+        date=str(datetime.today().date() - timedelta(days=1)),
+        logger=logger,
+    )
+    try:
+        filter_posts_yesterday.get_posts_of_subreddits_from_db(
+            TableName=DAILY_UPLOADS_TABLE_NAME
+        )
+
+        filter_posts_yesterday.marshall_and_sort_posts()
+        filter_posts_yesterday.filter_best_posts()
+
+        posts_yesterday = filter_posts_yesterday.get_filtered_posts()
+
+        posts_to_download = []
+
+        for post in posts:
+            if post not in posts_yesterday:
+                posts_to_download.append(post)
+    except:
+        posts_to_download = posts
 
     download_posts = DownloadPosts(
         s3=s3,
-        posts=posts,
+        posts=posts_to_download,
         bucket_name=unparsed_subreddit_group,
         logger=logger,
-        # download_path="./tt",
-        # encode_path="./tt/encode",
+        download_path="./tt",
+        encode_path="./tt/encode",
     )
     # download_posts.download_videos()
 
@@ -86,7 +116,7 @@ def run(event, context):
 
         idx += 1
 
-    video_stamps = video_stamps[0:2]
+    video_stamps = video_stamps[0:1]
 
     for counter, start_stamp, end_stamp in video_stamps:
         process = Process(
@@ -118,22 +148,95 @@ def process_a_video(
         posts=current_video,
         s3=s3,
         bucket_name=bucket_name,
-        final_video_name=bucket_name + "_" + str(time_ns()),
+        final_video_name=bucket_name + "_" + str(counter),
         logger=logger,
     )
 
-    print("Processing ", video_processing.final_video_path)
-
     video_processing.process_video_clips(
         TRANSITION_CLIPS_BUCKET,
-        INTRO_CLIPS_BUCKET,
+        INTRO_VIDEO_CLIPS_BUCKET,
         OUTTRO_CLIPS_BUCKET,
         AUDIO_CLIPS_BUCKET,
     )
 
-    video_processing.concatenate_videos_and_render()
+    video_processing.concatenate_videos_and_render(LIKE_AND_SUBSCRIBE_CLIPS_BUCKET)
 
     print(f"Finished processing video {bucket_name + str(counter)}")
+
+    print(f"Uploading the video: {video_processing.final_video_name}")
+
+    # video_credits = [f'u/{post["author"]} - {post["url"]}' for post in current_video]
+    video_credits = [f'u/{post["author"]}' for post in current_video]
+
+    video_credits = "\n".join(video_credits)
+
+    keywords = ", ".join(parse_subreddits_group(video_processing.bucket_name))
+    keywords = f'"{keywords}"'
+    description = f"""
+    Enjoy watching these funny memes.
+
+    Try not to laugh as you watch these funny/awesome/wholesome/creative/amazing  videos.
+
+    Like the video and Subscribe for more.
+
+    ➟ Credits (Please check out the creators of these clips, without them these kinds of videos won't exist):\n
+    🎥 CONTENT CREATORS FEATURED (Show them some love):
+    {video_credits}
+
+    E-mail me on my business e-mail if you want your video removed or if i missed your credit (if i missed it, you will be credited with special thanks in the comments.)
+    I browse hundreds of repost pages for one video and without a watermark, it's impossible for me to find the source of every clip.
+
+    For promotions/removals, contact my email:📩  vidsfromaroundtheinternet@gmail.com
+
+    ⚠️ Copyright Disclaimer, Under Section 107 of the Copyright Act 1976, allowance is made for 'fair use' for purposes
+    such as criticism, comment, news reporting, teaching, scholarship, and research.
+    Fair use is a use permitted by copyright statute that might otherwise be infringing.
+    Non-profit, educational or personal use tips the balance in favor of fair use.
+
+    ⚠️ Community Guidelines Disclaimer
+    This video is for entertainment purposes only. My videos are not intented to bully / harass or offend anyone. The clips shown are funny, silly, they relieve stress and anxiety, create good vibes and make viewers laugh.  Many of them leaving feedback about these videos helping with depression, anxiety and all type of bad moods.
+    This video should not be taken seriously.
+    Do not perform any actions shown in this video!
+    """
+
+    description = f'"{description}"'
+    category_id = '"23"'
+    title = f'"{video_processing.final_video_name}"'
+    file_path = f'"{video_processing.final_video_path}"'
+
+    upload_cmd = [
+        "python",
+        "upload_video.py",
+        f"--file={file_path}",
+        f"--title={title}",
+        f"--description={description}",
+        f"--keywords={keywords}",
+        f"--category={category_id}",
+        '--privacyStatus="private"',
+    ]
+
+    os.system(" ".join(upload_cmd))
+
+    videos_of_the_day_bucket = bucket_name.split("-")
+    videos_of_the_day_bucket = videos_of_the_day_bucket[0:4]
+    videos_of_the_day_bucket = "-".join(videos_of_the_day_bucket)
+
+    kwargs = {"Bucket": videos_of_the_day_bucket}
+
+    if not s3_helpers.bucket_exists(s3, logger, kwargs):
+        kwargs = {
+            "Bucket": kwargs["Bucket"],
+            "ACL": "private",
+            "CreateBucketConfiguration": {"LocationConstraint": "ap-south-1"},
+        }
+        s3_helpers.create_bucket(s3, logger, kwargs)
+
+    s3_helpers.upload_file(
+        s3,
+        logger,
+        bucket_name=videos_of_the_day_bucket,
+        file_path=video_processing.final_video_path,
+    )
 
 
 def needs_to_execute(bucket_name, s3, logger):

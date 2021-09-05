@@ -161,7 +161,7 @@ def is_last_subreddit_of_today(gather_posts, ddb, logger):
 
 
 def needs_to_execute(bucket_name, s3, logger):
-    params = {"BucketName": bucket_name}
+    params = {"Bucket": bucket_name}
     if s3_helpers.bucket_exists(s3, logger, **params):
         logger.info("Exiting")
         return False

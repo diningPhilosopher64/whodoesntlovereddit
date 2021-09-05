@@ -63,12 +63,28 @@ class GatherPosts:
 
     @staticmethod
     def __is_eligible(post):
-        if post["is_video"] and not post["over_18"] and not post["stickied"]:
+
+        if post["over_18"] or post["stickied"]:
+            return False
+
+        if (
+            post["is_video"]
+            or "preview" in post
+            and "reddit_video_preview" in post["preview"]
+            and post["preview"]["reddit_video_preview"]["is_gif"]
+        ):
             if post["total_awards_received"] > 0:
                 return True
 
             if post["ups"] > 0 and post["num_comments"] > 0:
                 return True
+
+        # elif (
+        #     "preview" in post
+        #     and "reddit_video_preview" in post["preview"]
+        #     and post["preview"]["reddit_video_preview"]["is_gif"]
+        # ):
+        #     return True
 
         return False
 
@@ -85,18 +101,26 @@ class GatherPosts:
         for post in posts:
             post = post["data"]
             self.latest_post = post
+            print(f'Latest post has the title: {post["title"]}')
             if GatherPosts.__is_eligible(post) and GatherPosts.__removed_post_is_worthy(
                 post
             ):
 
                 temp = {key: post[key] for key in GatherPosts.post_keys_to_keep}
+
                 # Have to handle duration seperately here and
                 # in __serialize_post() because its deeply nested.
-                duration = int(post["media"]["reddit_video"]["duration"])
+                # Duration key is stored in different places depending on whether the post is a video or a gif.
+                duration = (
+                    int(post["media"]["reddit_video"]["duration"])
+                    if post["is_video"]
+                    else int(post["preview"]["reddit_video_preview"]["duration"])
+                )
+
                 temp["duration"] = duration
                 self.eligible_posts.append(temp)
 
-                self.total_duration += duration
+                # self.total_duration += duration
                 self.logger.info(
                     f"Post:\nTitle: {post['title']}\nDuration: {duration}s\nwas added to eligible posts\n"
                 )
@@ -154,41 +178,3 @@ class GatherPosts:
             for _key, _value in value.items():
                 deserialized_item[key] = _value
         return deserialized_item
-
-
-# self.df_top = self.df_top.append(
-#     {
-#         "title": post["title"],
-#         "upvote_ratio": post["upvote_ratio"],
-#         "ups": post["ups"],
-#         "downs": post["downs"],
-#         "score": post["score"],
-#         "url": post["url"],
-#     },
-#     ignore_index=True,
-# )
-
-# def sort_and_update_urls(self):
-#     self.df_top = self.df_top.sort_values(
-#         ["score", "total_awards_received", "ups", "upvote_ratio"],
-#         ascending=False,
-#         axis=0,
-#     )
-
-# self.urls = self.urls + self.df_top["url"].tolist()
-
-# def serialize_subreddit_date(self):
-#     item = self.subreddit_date_key()
-#     item["total_duration"] = self.__serialize_total_duration()
-#     return item
-
-# def __serialize_urls(self):
-#     serialized_urls = {"L": [{"S": url} for url in self.urls]}
-#     return serialized_urls
-
-#  post["title"],
-#                     post["upvote_ratio"],
-#                     post["ups"],
-#                     post["score"],
-#                     post["url"],
-#                     post["author"],

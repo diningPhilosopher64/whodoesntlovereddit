@@ -12,7 +12,7 @@ from helpers.Exceptions import RequestedItemNotFoundException
 from helpers import Exceptions
 
 
-def bucket_exists(s3, logger, **kwargs) -> bool:
+def bucket_exists(s3, logger, kwargs) -> bool:
     try:
         s3.head_bucket(**kwargs)
         logger.info(f'Bucket {kwargs["Bucket"]} exists.')
@@ -25,8 +25,43 @@ def bucket_exists(s3, logger, **kwargs) -> bool:
     except Exception:
         Exceptions.log_generic_exception(kwargs, logger)
 
-    finally:
-        return False
+    return False
+
+
+def upload_file(s3, logger, bucket_name, file_path, prefix=""):
+    file_name = file_path.split("/")[-1]
+
+    file_name = file_name if not prefix else prefix + "/" + file_name
+
+    try:
+
+        with open(file_path, "rb") as f:
+            s3.upload_fileobj(f, bucket_name, file_name)
+
+        logger.info(
+            f"Successfully uploaded the file: {file_name} to the bucket: {bucket_name}"
+        )
+    except:
+        kwargs = {
+            "BucketName": bucket_name,
+            "FileName": file_path,
+            "prefix": prefix,
+        }
+        Exceptions.log_generic_exception(kwargs, logger)
+
+
+def create_bucket(s3, logger, kwargs) -> bool:
+    try:
+        s3.create_bucket(**kwargs)
+        logger.info(f'Created bucket: {kwargs["Bucket"]}')
+    except:
+        Exceptions.log_generic_exception(kwargs, logger)
+
+
+# def upload_file(s3, logger, file_path):
+#     try:
+#         with open(file_path, "rb") as f:
+#             s3.upload_fileobj(f, )
 
 
 def list_objects_v2(s3, logger, **kwargs):

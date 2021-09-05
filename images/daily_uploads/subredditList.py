@@ -1,3 +1,1 @@
-subreddits = [
-    "funny",
-]
+subreddits = ["funny", "NatureIsFuckingLit"]

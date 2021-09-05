@@ -1,5 +1,6 @@
 function:
   memorySize: 256
+  timeout: 600
   image:
     name: daily_uploads
     command: 

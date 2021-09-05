@@ -8,20 +8,27 @@ pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 
 class FilterPosts:
-    def __init__(self, ddb, subreddits_group, logger) -> None:
+    def __init__(self, ddb, subreddits_group, date, logger) -> None:
         self.df_top = pd.DataFrame()
         self.df_filtered = pd.DataFrame()
         self.subreddits_group = subreddits_group
         self.logger = logger
         self.ddb = ddb
+        self.date = date
         self.posts_arr = []
-        self.gather_post = None
+        self.gather_posts = None
 
     def get_posts_of_subreddits_from_db(self, TableName):
         transact_items = []
 
         for subreddit in self.subreddits_group:
             self.gather_posts = GatherPosts(subreddit, self.logger)
+
+            # If we want posts of a different date, in the constructor
+            # we would pass that specific date and below will fetch all posts of that date
+            # This would handle the use case for daily uploads for the past.
+            self.gather_posts.date = self.date
+
             transact_item = {
                 "Get": {
                     "TableName": TableName,
@@ -36,6 +43,8 @@ class FilterPosts:
         subreddit_items = ddb_helpers.transact_get_items(
             ddb=self.ddb, logger=self.logger, **kwargs
         )
+
+        # pp.pprint(GatherPosts.deserialize_from_item(subreddit_items[0]))
 
         self.posts_arr = [
             GatherPosts.deserialize_from_item(item)["posts"] for item in subreddit_items

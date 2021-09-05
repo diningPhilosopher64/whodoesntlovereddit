@@ -2,9 +2,10 @@
 # My additions
 .venv/
 
-**/*.mp4
+*.mp4
 
 **/*.mp3
+**/*.ipynb
 
 sandbox/.ipynb_checkpoints/
 

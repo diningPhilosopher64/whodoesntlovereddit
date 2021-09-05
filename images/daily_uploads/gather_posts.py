@@ -1,5 +1,7 @@
 import boto3, os, sys, logging, pprint
-from time import time
+
+# from time import time
+import time
 from pathlib import Path
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
@@ -43,55 +45,38 @@ def run(event, context):
     if not needs_to_execute(ddb, gather_posts, logger):
         return {"note": f"{gather_posts.subreddit} is already processed. Exiting."}
 
-    logger.info(f"Subreddit : {subreddit}, is being processed at {time()}")
+    logger.info(f"Subreddit : {subreddit}, is being processed at {time.time()}")
 
     # Getting from env here because, if container is warm, it will fetch from the previously
     # executed subreddit url.
-    REDDIT_API_URL_TOP = os.getenv("REDDIT_API_URL_TOP")
-    REDDIT_API_URL_TOP = REDDIT_API_URL_TOP.replace("placeholder_value", subreddit)
+    REDDIT_API_URL_NEW = os.getenv("REDDIT_API_URL_NEW")
+    REDDIT_API_URL_NEW = REDDIT_API_URL_NEW.replace("placeholder_value", subreddit)
 
     reddit_account = RedditAccount(subreddit=subreddit, ddb=ddb, logger=logger)
     reddit_account.fetch_and_update_account_details(REDDIT_ACCOUNTS_TABLE_NAME)
     reddit_account.authenticate_with_api()
     reddit_account.fetch_and_update_access_token(REDDIT_AUTH_URL)
 
-    # Keep fetching and parsing posts from reddit API till gather_posts.total_duration
-    # is more than 600 seconds. Will use the 'after' param to keep going backwards.
+    start_time = time.time()
     after = None
-    while gather_posts.total_duration < 601:
+    while True:
         logger.info(f"Fetching subreddit: {subreddit} posts after {after}")
         posts = reddit_account.fetch_posts_as_json(
-            REDDIT_API_URL_TOP, params={"limit": "100", "after": after}
+            REDDIT_API_URL_NEW, params={"limit": "100", "after": after}
         )
+
+        if not posts["data"]["children"]:
+            logger.info("Received nothing. Sleeping for 60 seconds")
+            time.sleep(60)
+            continue
+
+        logger.info(f'Fetched {len(posts["data"]["children"])}')
         gather_posts.parse_posts(posts)
         after = gather_posts.latest_post["name"]
 
-    # After uploading this subreddits' urls, update the count of todays_subreddits_count
-    # doing this as a transaction.
-    # try:
-    # params = {
-    #     "TransactItems": [
-    #         {
-    #             "Put": {
-    #                 "TableName": DAILY_UPLOADS_TABLE_NAME,
-    #                 "Item": gather_posts.serialize_to_item(),
-    #             }
-    #         },
-    #         {
-    #             "Update": {
-    #                 "TableName": DAILY_UPLOADS_TABLE_NAME,
-    #                 "Key": {
-    #                     "PK": {"S": gather_posts.date},
-    #                     "SK": {"S": "todays_subreddits_count"},
-    #                 },
-    #                 "ConditionExpression": "attribute_exists(PK) and attribute_exists(SK)",
-    #                 "UpdateExpression": "SET #count = #count + :inc",
-    #                 "ExpressionAttributeNames": {"#count": "count"},
-    #                 "ExpressionAttributeValues": {":inc": {"N": "1"}},
-    #             }
-    #         },
-    #     ]
-    # }
+        # if the latest post is more than 30 hours old, stop fetching posts.
+        if (start_time - int(gather_posts.latest_post["created_utc"])) / 3600 > 30:
+            break
 
     params = {
         "TransactItems": [
@@ -130,19 +115,11 @@ def run(event, context):
             f"The subreddit {gather_posts.subreddit} is the last one to download videos on {gather_posts.date}.\n"
         )
 
-        push_to_sqs_for_processing_subreddit_groups(gather_posts.date)
+        # push_to_sqs_for_processing_subreddit_groups(gather_posts.date)
 
         return {
             "success": f"All subreddits have been processed for date {gather_posts.date}.\nPushed to {DAILY_UPLOADS_PROCESS_SUBREDDITS_GROUP_QUEUE_URL} for processing."
         }
-
-    # # Upload posts to DAILY_UPLOADS_TABLE_NAME
-    # params = {
-    #     "TableName": DAILY_UPLOADS_TABLE_NAME,
-    #     "Item": gather_posts.serialize_to_item(),
-    # }
-
-    # res = ddb_helpers.put_item(ddb, logger, **params)
 
     logger.info(
         f"Successfully updated DB for {subreddit} subreddit on {gather_posts.date}"
@@ -241,6 +218,50 @@ def needs_to_execute(ddb, gather_posts, logger):
     else:
         logger.info(f"Already gathered posts for subreddit: {gather_posts.subreddit}.")
         return False
+
+
+# Keep fetching and parsing posts from reddit API till gather_posts.total_duration
+# is more than 600 seconds. Will use the 'after' param to keep going backwards.
+# after = None
+# while gather_posts.total_duration < 601:
+#     logger.info(f"Fetching subreddit: {subreddit} posts after {after}")
+#     posts = reddit_account.fetch_posts_as_json(
+#         REDDIT_API_URL_TOP, params={"limit": "100", "after": after}
+#     )
+
+#     if not posts["data"]["children"]:
+#         break
+
+#     gather_posts.parse_posts(posts)
+#     after = gather_posts.latest_post["name"]
+#     time.sleep(1)
+
+# After uploading this subreddits' urls, update the count of todays_subreddits_count
+# doing this as a transaction.
+# try:
+# params = {
+#     "TransactItems": [
+#         {
+#             "Put": {
+#                 "TableName": DAILY_UPLOADS_TABLE_NAME,
+#                 "Item": gather_posts.serialize_to_item(),
+#             }
+#         },
+#         {
+#             "Update": {
+#                 "TableName": DAILY_UPLOADS_TABLE_NAME,
+#                 "Key": {
+#                     "PK": {"S": gather_posts.date},
+#                     "SK": {"S": "todays_subreddits_count"},
+#                 },
+#                 "ConditionExpression": "attribute_exists(PK) and attribute_exists(SK)",
+#                 "UpdateExpression": "SET #count = #count + :inc",
+#                 "ExpressionAttributeNames": {"#count": "count"},
+#                 "ExpressionAttributeValues": {":inc": {"N": "1"}},
+#             }
+#         },
+#     ]
+# }
 
 
 # def push_subreddits_to_queue(logger):

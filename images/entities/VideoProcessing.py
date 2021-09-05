@@ -1,5 +1,5 @@
 # from multiprocessing import Process, Pipe, Pool
-import pprint, random, boto3
+import pprint, random, boto3, os
 from time import time
 from pathlib import Path
 
@@ -26,10 +26,13 @@ class VideoProcessing:
         self.processed_path = os.path.join(self.encode_path, "processed")
         self.processed_file_names = []
         self.bucket_name = bucket_name
+        self.final_video_name = final_video_name
+
         Path(self.processed_path).mkdir(exist_ok=True, parents=True)
         Path(self.encode_path).mkdir(exist_ok=True, parents=True)
+
         self.final_video_path = (
-            os.path.join(self.processed_path, final_video_name) + ".mp4"
+            os.path.join(self.processed_path, self.final_video_name) + ".mp4"
         )
         self.posts = posts
         self.s3 = s3
@@ -71,7 +74,7 @@ class VideoProcessing:
     def process_video_clips(
         self,
         TRANSITION_CLIPS_BUCKET,
-        INTRO_CLIPS_BUCKET,
+        INTRO_VIDEO_CLIPS_BUCKET,
         OUTTRO_CLIPS_BUCKET,
         AUDIO_CLIPS_BUCKET,
     ):
@@ -85,11 +88,29 @@ class VideoProcessing:
         transition_clips_paths = self.__download_transition_clips(
             TRANSITION_CLIPS_BUCKET
         )
-        intro_clip_path = VideoProcessing.download_a_random_clip(
-            INTRO_CLIPS_BUCKET, self.encode_path, self.logger, self.s3
+        intro_video_clip_path = VideoProcessing.download_a_random_clip(
+            INTRO_VIDEO_CLIPS_BUCKET,
+            self.encode_path,
+            self.logger,
+            file_name_prefix=self.final_video_name,
+            s3=self.s3,
+            prefix="",
+        )
+        intro_audio_clip_path = VideoProcessing.download_a_random_clip(
+            AUDIO_CLIPS_BUCKET,
+            self.encode_path,
+            self.logger,
+            file_name_prefix=self.final_video_name,
+            s3=self.s3,
+            prefix="intro",
         )
         outtro_clip_path = VideoProcessing.download_a_random_clip(
-            OUTTRO_CLIPS_BUCKET, self.encode_path, self.logger, self.s3
+            OUTTRO_CLIPS_BUCKET,
+            self.encode_path,
+            self.logger,
+            file_name_prefix=self.final_video_name,
+            s3=self.s3,
+            prefix="",
         )
 
         # self.logger.info("Transition clips received are:")
@@ -114,7 +135,8 @@ class VideoProcessing:
                 "is_first": is_first,
                 "is_last": is_last,
                 "transition_clip_path": transition_clips_paths[post["name"]],
-                "intro_clip_path": intro_clip_path,
+                "intro_video_clip_path": intro_video_clip_path,
+                "intro_audio_clip_path": intro_audio_clip_path,
                 "outtro_clip_path": outtro_clip_path,
                 "file_name": file_name,
             }
@@ -157,7 +179,7 @@ class VideoProcessing:
         # self.logger.info(f"Concatenating processed clips")
         print(f"Concatenating processed clips")
 
-    def concatenate_videos_and_render(self):
+    def concatenate_videos_and_render(self, LIKE_AND_SUBSCRIBE_CLIPS_BUCKET):
         print("Trying to concatenate videos of final video\n", self.final_video_path)
         self.logger.info("Concatenating clips to render video")
 
@@ -188,6 +210,25 @@ class VideoProcessing:
         final_video = concatenate_videoclips(
             [intro_clip, *inbetween_clips, outtro_clip]
         )
+
+        like_and_subscribe_clip_path = VideoProcessing.download_a_random_clip(
+            bucket_name=LIKE_AND_SUBSCRIBE_CLIPS_BUCKET,
+            download_path=self.encode_path,
+            logger=self.logger,
+            s3=self.s3,
+        )
+
+        like_and_subscribe_clip = VideoFileClip(like_and_subscribe_clip_path)
+        like_and_subscribe_clip = moviepy.video.fx.all.mask_color(
+            like_and_subscribe_clip, color=[0, 255, 0], thr=20, s=6
+        )
+
+        duration = final_video.duration
+
+        final_video = CompositeVideoClip(
+            [final_video, like_and_subscribe_clip.set_start(duration * 0.5)]
+        )
+
         print("Final video path is ", self.final_video_path)
         final_video.write_videofile(self.final_video_path, logger=None)
 
@@ -197,7 +238,9 @@ class VideoProcessing:
 
         self.logger.info(f"Uploaded {self.final_video_path} to {self.bucket_name}")
 
-    def download_a_random_clip(bucket_name, download_path, logger, s3=None, prefix=""):
+    def download_a_random_clip(
+        bucket_name, download_path, logger, file_name_prefix="", s3=None, prefix=""
+    ):
         """Method to download a random clip from a bucket.
         Used for downloading intro/outtro clips.
 
@@ -222,9 +265,25 @@ class VideoProcessing:
 
         random_clip = objects[random.randint(0, len(objects) - 1)]
 
+        file_name = (
+            random_clip if not prefix else random_clip.partition(prefix + "/")[2]
+        )
+
+        file_name = (
+            file_name if not file_name_prefix else file_name_prefix + "_" + file_name
+        )
+
+        logger.info(f"Downloading {file_name}")
+        print(f"Downloading {file_name}")
+
+        s3.download_file(bucket_name, random_clip, download_path + file_name)
+
+        return download_path + file_name
+
         file_path = os.path.join(
             download_path,
-            random_clip if not prefix else random_clip.partition(prefix + "/")[2],
+            file_name
+            # random_clip if not prefix else random_clip.partition(prefix + "/")[2],
         )
 
         params = {
@@ -328,10 +387,16 @@ class VideoProcessing:
         transition_clip = VideoFileClip(params["transition_clip_path"])
 
         if params["is_first"]:
-            # If first video, concatenate: Intro | processed_clip | transition
-            intro_clip = VideoFileClip(params["intro_clip_path"])
+            # If first video, concatenate: Intro  | transition | processed_clip | transition
+            intro_clip = VideoFileClip(params["intro_video_clip_path"])
+            intro_audio_clip = AudioFileClip(params["intro_audio_clip_path"])
+
+            intro_audio_clip = intro_audio_clip.audio_fadein(0.5)
+            intro_audio_clip = intro_audio_clip.audio_fadeout(0.5)
+            intro_clip.audio = intro_audio_clip
+
             final_clip = concatenate_videoclips(
-                [intro_clip, processed_clip, transition_clip]
+                [intro_clip, transition_clip, processed_clip, transition_clip]
             )
             # logger.info(
             #     f"Post with name : {post['name']} is the first video of the subreddit group to be concatenated."

@@ -1,6 +1,6 @@
 function:
-  memorySize: 1024
-  timeout: 600
+  memorySize: 4096
+  timeout: 6000
   image:
     name: daily_uploads
     command: 
@@ -30,6 +30,7 @@ function:
       Action:
         - s3:CreateBucket
         - s3:PutObject
+        - s3:GetObject
         - s3:ListBucket
 
       Resource:
