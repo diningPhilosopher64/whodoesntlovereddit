@@ -15,7 +15,30 @@ def run(event, context):
 
     init_script = """
                     #!/bin/bash
+                    
+                    sudo su
 
+                    #Update and install git
+                    sudo yum update -y
+                    sudo yum install git -y
+                    
+                    # Setup ffmpeg                    
+                    mkdir /usr/local/bin/ffmpeg 
+
+                    wget -P /usr/local/bin/ffmpeg  https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+                    tar -xvf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz --directory /usr/local/bin/ffmpeg  
+                    
+                    mv /usr/local/bin/ffmpeg/ffmpeg-4.4-amd64-static/ffmpeg /usr/local/bin/ffmpeg/
+
+                    ln -s /usr/local/bin/ffmpeg/ffmpeg /usr/bin/ffmpeg
+
+                    # Remove tar and unused files
+                    rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static && \
+                    rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz
+                    
+                    # Come out of root
+                    exit
+                    
                     cd /home/ec2-user
 
                     python3 -m venv .venv
@@ -30,10 +53,6 @@ def run(event, context):
                     #Change permissions and add the key to use it.
                     chmod 400 ./gh_dining
                     ssh-add ./gh_dining
-
-                    #Update and install git
-                    sudo yum update -y
-                    sudo yum install git -y
 
                     git clone git@github.com:diningPhilosopher64/whodoesntlovereddit.git
                 """
