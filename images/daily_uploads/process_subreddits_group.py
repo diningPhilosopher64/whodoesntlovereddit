@@ -30,7 +30,7 @@ INTRO_VIDEO_CLIPS_BUCKET = os.getenv("INTRO_VIDEO_CLIPS_BUCKET")
 AUDIO_CLIPS_BUCKET = os.getenv("AUDIO_CLIPS_BUCKET")
 OUTTRO_CLIPS_BUCKET = os.getenv("OUTTRO_CLIPS_BUCKET")
 LIKE_AND_SUBSCRIBE_CLIPS_BUCKET = os.getenv("LIKE_AND_SUBSCRIBE_CLIPS_BUCKET")
-MAX_VIDEO_DURATION = os.getenv("MAX_VIDEO_DURATION")
+MAX_VIDEO_DURATION = int(os.getenv("MAX_VIDEO_DURATION"))
 
 
 def run(event, context):
@@ -114,7 +114,7 @@ def run(event, context):
 
         idx += 1
 
-    video_stamps = video_stamps[0:1]
+    # video_stamps = video_stamps[0:1]
 
     for counter, start_stamp, end_stamp in video_stamps:
         process = Process(

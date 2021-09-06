@@ -19,8 +19,8 @@ def run(event, context):
                     sudo su
 
                     #Update and install git
-                    sudo yum update -y
-                    sudo yum install git -y
+                    yum update -y
+                    yum install git -y
                     
                     # Setup ffmpeg                    
                     mkdir /usr/local/bin/ffmpeg 
@@ -55,6 +55,10 @@ def run(event, context):
                     ssh-add ./gh_dining
 
                     git clone git@github.com:diningPhilosopher64/whodoesntlovereddit.git
+                    
+                    pip install -r whodoesntlovereddit/images/requirements.txt
+                    
+                    
                 """
 
     # shutdown -h +5
