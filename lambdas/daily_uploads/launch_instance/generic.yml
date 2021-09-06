@@ -1,0 +1,52 @@
+function:
+  # memorySize: 4096
+  timeout: 600
+  image:
+    name: daily_uploads
+    command: 
+      - daily_uploads.launch_instance.run
+  events:
+    - sqs: 
+        arn: ${self:custom.DailyUploadsProcessSubredditsGroupQueue.arn}
+        batchSize: 1
+
+  iamRoleStatementsName: DailyUploadsCreateEc2InstanceWithRole
+  iamRoleStatements:
+    - Effect: "Allow"
+      Action:
+        - sqs:ReceiveMessage
+      Resource:
+        - ${self:custom.DailyUploadsProcessSubredditsGroupQueue.arn}
+
+    - Effect: "Allow"
+      Action:
+        - ec2:*
+      Resource:
+        - "*"
+    
+    - Effect: "Allow"
+      Action:
+        - iam:GetRole
+        - iam:PassRole
+      Resource:
+        - "arn:aws:iam::127014180769:role/EC2-render-video-upload-to-s3"
+
+
+
+        
+    # - Effect: "Allow"
+    #   Action:
+    #     - dynamodb:GetItem
+    #   Resource:
+    #     - ${self:custom.DailyUploadsTable.arn}
+        
+
+    # - Effect: "Allow"
+    #   Action:
+    #     - s3:CreateBucket
+    #     - s3:PutObject
+    #     - s3:GetObject
+    #     - s3:ListBucket
+
+    #   Resource:
+    #     - "*"

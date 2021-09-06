@@ -34,8 +34,6 @@ DAILY_UPLOADS_PROCESS_SUBREDDITS_GROUP_QUEUE_URL = os.getenv(
 
 def run(event, context):
 
-    # TODO: Hardcoding subreddit value for now. In production, should extract from queue:
-    # subreddit = "funny"
     subreddit = str(event["Records"][0]["body"])
 
     gather_posts = GatherPosts(subreddit=subreddit, logger=logger)
@@ -115,7 +113,7 @@ def run(event, context):
             f"The subreddit {gather_posts.subreddit} is the last one to download videos on {gather_posts.date}.\n"
         )
 
-        # push_to_sqs_for_processing_subreddit_groups(gather_posts.date)
+        push_to_sqs_for_processing_subreddit_groups(gather_posts.date)
 
         return {
             "success": f"All subreddits have been processed for date {gather_posts.date}.\nPushed to {DAILY_UPLOADS_PROCESS_SUBREDDITS_GROUP_QUEUE_URL} for processing."
@@ -124,8 +122,6 @@ def run(event, context):
     logger.info(
         f"Successfully updated DB for {subreddit} subreddit on {gather_posts.date}"
     )
-
-    # res = push_subreddit_to_queue(logger)
 
     res[
         "subreddit"
@@ -150,7 +146,6 @@ def push_to_sqs_for_processing_subreddit_groups(todays_date):
 
 
 def is_last_subreddit_of_today(gather_posts, ddb, logger):
-    # key = gather_posts.key()
 
     total_subreddits_key = gather_posts.key()
     todays_subreddits_key = gather_posts.key()
@@ -175,12 +170,7 @@ def is_last_subreddit_of_today(gather_posts, ddb, logger):
         ]
     }
 
-    # You get items but in an array of dicts containing "Item" as the key and
-    # actual item as the value.
     items = ddb_helpers.transact_get_items(ddb, logger, **params)
-
-    # Extract actual items from items
-    # items = [item["Item"] for item in items]
 
     # Deserialize the items and extract total_subreddits_count and todays_subreddits_count items.
     total_subreddits_item_deserialized, todays_subreddit_item_deserialized = [
@@ -193,17 +183,6 @@ def is_last_subreddit_of_today(gather_posts, ddb, logger):
         and todays_subreddit_item_deserialized["last_processed_subreddit"]
         == gather_posts.subreddit
     )
-
-
-# def push_subreddit_to_queue(subreddit, logger):
-#     params = {
-#         "QueueUrl": DAILY_UPLOADS_DOWNLOAD_POSTS_FOR_A_SUBREDDIT_QUEUE_URL,
-#         "MessageBody": subreddit,
-#     }
-
-#     res = sqs_helpers.send_message(sqs, logger, **params)
-
-#     return res
 
 
 def needs_to_execute(ddb, gather_posts, logger):

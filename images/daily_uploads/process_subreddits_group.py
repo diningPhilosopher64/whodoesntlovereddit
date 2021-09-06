@@ -30,6 +30,7 @@ INTRO_VIDEO_CLIPS_BUCKET = os.getenv("INTRO_VIDEO_CLIPS_BUCKET")
 AUDIO_CLIPS_BUCKET = os.getenv("AUDIO_CLIPS_BUCKET")
 OUTTRO_CLIPS_BUCKET = os.getenv("OUTTRO_CLIPS_BUCKET")
 LIKE_AND_SUBSCRIBE_CLIPS_BUCKET = os.getenv("LIKE_AND_SUBSCRIBE_CLIPS_BUCKET")
+MAX_VIDEO_DURATION = os.getenv("MAX_VIDEO_DURATION")
 
 
 def run(event, context):
@@ -49,8 +50,6 @@ def run(event, context):
     parsed_subreddits_group = parse_subreddits_group(bucket_name)
     logger.info("Parsed subreddit groups")
     logger.info(pp.pformat(parsed_subreddits_group))
-
-    # posts_arr = get_posts_of_subreddits_from_db(ddb, parsed_subreddit_group, logger)
 
     filter_posts = FilterPosts(
         ddb=ddb,
@@ -96,10 +95,9 @@ def run(event, context):
         download_path="./tt",
         encode_path="./tt/encode",
     )
-    # download_posts.download_videos()
+    download_posts.download_videos()
 
     total_duration = 0
-    MAX_VIDEO_DURATION = 70
     start_idx = 0
     idx = 0
     counter = 1

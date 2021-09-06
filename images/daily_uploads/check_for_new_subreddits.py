@@ -56,7 +56,6 @@ def push_subreddits_to_queue(logger):
 
 
 def run(event, context):
-    push_subreddits_to_queue(logger)
 
     todays_date = str(datetime.today().date())
     total_subreddit_count = str(len(all_subreddits))
@@ -85,31 +84,12 @@ def run(event, context):
                     },
                 }
             },
-            # {
-            #     "Put": {
-            #         "TableName": DAILY_UPLOADS_TABLE,
-            #         "Item": {
-            #             "PK": {"S": todays_date},
-            #             "SK": {"S": "total_subreddit_groups_count"},
-            #             "count": {"N": total_subreddit_groups_count},
-            #         },
-            #     }
-            # },
-            # {
-            #     "Put": {
-            #         "TableName": DAILY_UPLOADS_TABLE,
-            #         "Item": {
-            #             "PK": {"S": todays_date},
-            #             "SK": {"S": "todays_subreddit_groups_count"},
-            #             "count": {"N": "0"},
-            #             "last_processed_subreddit_group": {"S": "None"},
-            #         },
-            #     }
-            # },
         ]
     }
     resp = ddb_helpers.transact_write_items(ddb, logger, **params)
 
     resp["status_code"] = 200 if "error" not in resp else 500
+
+    push_subreddits_to_queue(logger)
 
     return resp

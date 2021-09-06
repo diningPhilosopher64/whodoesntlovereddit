@@ -1,2 +1,0 @@
-function:
-  image: 127014180769.dkr.ecr.ap-south-1.amazonaws.com/first_lambda_image_repo@sha256:952362b05c9c5ccf8bce01d39c462f6f25654eb2e384db97264d072ad08477d2
