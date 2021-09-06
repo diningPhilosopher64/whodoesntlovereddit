@@ -39,7 +39,7 @@ provider:
     REGION : "ap-south-1"
 
     # Environment variables for processing and rendering videos
-    MAX_VIDEO_DURATION: 70
+    MAX_VIDEO_DURATION: 500
     TRANSITION_CLIPS_BUCKET: 'whodoesntlovereddit-transitions'
     INTRO_VIDEO_CLIPS_BUCKET: 'whodoesntlovereddit-intro-videoclips'
     OUTTRO_CLIPS_BUCKET: 'whodoesntlovereddit-outtro'

@@ -115,6 +115,8 @@ def run(event, context):
         idx += 1
 
     # video_stamps = video_stamps[0:1]
+    logger.info(f"Number of videos that will be generated are {len(video_stamps)}")
+    print(f"Number of videos that will be generated are {len(video_stamps)}")
 
     for counter, start_stamp, end_stamp in video_stamps:
         process = Process(
