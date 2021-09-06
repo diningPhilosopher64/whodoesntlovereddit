@@ -21,7 +21,7 @@ from helpers import s3 as s3_helpers
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
 s3 = boto3.client("s3")
-sqs = boto3.client("sqs")
+sqs = boto3.client("sqs", region_name="ap-south-1")
 
 
 DAILY_UPLOADS_TABLE_NAME = os.getenv("DAILY_UPLOADS_TABLE_NAME")
