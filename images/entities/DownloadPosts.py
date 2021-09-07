@@ -54,47 +54,64 @@ class DownloadPosts:
             f"Process: {os.getpid()} is downloading video from post with title: {post['title']}"
         )
 
-        file_name = post["name"] + ".mp4"
-        download_file_path = os.path.join(self.download_path, file_name)
-        encode_file_path = os.path.join(self.encode_path, file_name)
+        file_name_mp4 = post["name"] + ".mp4"
+        file_name_mkv = post["name"] + ".mkv"
+
+        download_file_path_mp4 = os.path.join(self.download_path, file_name_mp4)
+        encode_file_path_mp4 = os.path.join(self.encode_path, file_name_mp4)
+        encode_file_path_mkv = os.path.join(self.encode_path, file_name_mkv)
 
         ydl_opts = {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
             "logger": logging.getLogger(),
-            "outtmpl": download_file_path,
+            "outtmpl": download_file_path_mp4,
         }
 
         with youtube_dl.YoutubeDL(ydl_opts) as ydl:
             ydl.download([post["url"]])
 
-        ffmpeg_command = [
+        ffmpeg_resize_command = [
             "ffmpeg",
             "-hide_banner",
             "-loglevel",
             "error",
             "-i",
-            download_file_path,
+            download_file_path_mp4,
             "-vf",
             "scale=1920:1080:force_original_aspect_ratio=decrease,pad=1920:1080:-1:-1:color=black",
-            encode_file_path,
+            encode_file_path_mkv,
+            "-movflags",
+            "+faststart",
             "-y",
         ]
 
-        print(f"ffmpegging the file {download_file_path}")
+        print(f"ffmpegging the file {download_file_path_mp4}")
 
-        subprocess.run(ffmpeg_command, stdout=None, stderr=subprocess.PIPE)
+        subprocess.run(ffmpeg_resize_command, stdout=None, stderr=subprocess.PIPE)
 
-        # FIXME: Not sure how this will playout with helpers.s3
-        # as this is run as a subprocess.
-        # Try to use helpers.s3.upload_fileobj() sometime later to check if things
-        # outside this method are available to the created subprocess.
+        ffmpeg_convert_command = [
+            "ffmpeg",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-i",
+            encode_file_path_mkv,
+            encode_file_path_mp4,
+        ]
 
-        # with open(encode_file_path, "rb") as f:
-        #     self.s3.upload_fileobj(f, self.bucket_name, file_name)
+        subprocess.run(ffmpeg_convert_command, stdout=None, stderr=subprocess.PIPE)
 
-        self.logger.info(
-            f"Process: {os.getpid()} finished downloading and successfully pushed to s3"
+        print(
+            f"Finished ffmpegging, encoding and converting the file is at {encode_file_path_mp4}"
         )
+
+        try:
+            from moviepy.editor import VideoFileClip
+
+            bla = VideoFileClip(encode_file_path_mp4)
+
+        except Exception as e:
+            print(e)
 
     def download_videos(self):
         self.logger.info("Downloading videos from posts")

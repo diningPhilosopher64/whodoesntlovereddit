@@ -88,29 +88,31 @@ class VideoProcessing:
         transition_clips_paths = self.__download_transition_clips(
             TRANSITION_CLIPS_BUCKET
         )
+
         intro_video_clip_path = VideoProcessing.download_a_random_clip(
             INTRO_VIDEO_CLIPS_BUCKET,
             self.encode_path,
             self.logger,
-            file_name_prefix=self.final_video_name,
+            # file_name_prefix=self.final_video_name,
             s3=self.s3,
             prefix="",
         )
+
         intro_audio_clip_path = VideoProcessing.download_a_random_clip(
-            AUDIO_CLIPS_BUCKET,
-            self.encode_path,
-            self.logger,
-            file_name_prefix=self.final_video_name,
+            bucket_name=AUDIO_CLIPS_BUCKET,
+            download_path=self.encode_path,
+            logger=self.logger,
+            # file_name_prefix=self.final_video_name,
             s3=self.s3,
             prefix="intro",
         )
+
         outtro_clip_path = VideoProcessing.download_a_random_clip(
-            OUTTRO_CLIPS_BUCKET,
-            self.encode_path,
-            self.logger,
-            file_name_prefix=self.final_video_name,
+            bucket_name=OUTTRO_CLIPS_BUCKET,
+            download_path=self.encode_path,
+            logger=self.logger,
+            # file_name_prefix=self.final_video_name,
             s3=self.s3,
-            prefix="",
         )
 
         # self.logger.info("Transition clips received are:")
@@ -266,25 +268,19 @@ class VideoProcessing:
         random_clip = objects[random.randint(0, len(objects) - 1)]
 
         file_name = (
-            random_clip if not prefix else random_clip.partition(prefix + "/")[2]
+            random_clip if not prefix else random_clip.partition(prefix + "/")[-1]
         )
 
-        file_name = (
-            file_name if not file_name_prefix else file_name_prefix + "_" + file_name
-        )
+        # file_name = (
+        #     file_name if not file_name_prefix else file_name_prefix + "_" + file_name
+        # )
 
         logger.info(f"Downloading {file_name}")
         print(f"Downloading {file_name}")
 
-        s3.download_file(bucket_name, random_clip, download_path + file_name)
+        file_path = os.path.join(download_path, file_name)
 
-        return download_path + file_name
-
-        file_path = os.path.join(
-            download_path,
-            file_name
-            # random_clip if not prefix else random_clip.partition(prefix + "/")[2],
-        )
+        print(f"Downloading file {file_name} and file path is {file_path}")
 
         params = {
             "Bucket": bucket_name,
