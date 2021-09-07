@@ -92,8 +92,8 @@ def run(event, context):
         posts=posts_to_download,
         bucket_name=unparsed_subreddit_group,
         logger=logger,
-        download_path="./tt",
-        encode_path="./tt/encode",
+        # download_path="./tt",
+        # encode_path="./tt/encode",
     )
     download_posts.download_videos()
 
