@@ -1,10 +1,10 @@
-import boto3, os, logging, pprint, subprocess
-from time import time, time_ns
-from concurrent.futures import ProcessPoolExecutor, as_completed
+import boto3, os, logging, pprint
+
+# from time import time, time_ns
+# from concurrent.futures import ProcessPoolExecutor, as_completed
 from multiprocessing import Process
 from datetime import datetime, timedelta
 
-from botocore.retries import bucket
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
@@ -15,7 +15,6 @@ logger.setLevel(logging.INFO)
 from entities.FilterPosts import FilterPosts
 from entities.DownloadPosts import DownloadPosts
 from entities.VideoProcessing import VideoProcessing
-from helpers import sqs as sqs_helpers
 from helpers import s3 as s3_helpers
 
 
@@ -35,8 +34,8 @@ MAX_VIDEO_DURATION = int(os.getenv("MAX_VIDEO_DURATION"))
 
 def run(event, context):
     # Initialize logger and its config.
-    logger = logging.getLogger()
-    logger.setLevel(logging.INFO)
+    # logger = logging.getLogger()
+    # logger.setLevel(logging.INFO)
     # os.chdir("/tmp")
     logger.info(f"Current working directory is {os.getcwd()}")
     unparsed_subreddit_group = str(event["Records"][0]["body"])
@@ -54,7 +53,8 @@ def run(event, context):
     filter_posts = FilterPosts(
         ddb=ddb,
         subreddits_group=parsed_subreddits_group,
-        date=str(datetime.today().date()),
+        # date=str(datetime.today().date()),
+        date="2021-09-07",
         logger=logger,
     )
 
@@ -69,31 +69,32 @@ def run(event, context):
         date=str(datetime.today().date() - timedelta(days=1)),
         logger=logger,
     )
-    try:
-        filter_posts_yesterday.get_posts_of_subreddits_from_db(
-            TableName=DAILY_UPLOADS_TABLE_NAME
-        )
+    # try:
+    #     filter_posts_yesterday.get_posts_of_subreddits_from_db(
+    #         TableName=DAILY_UPLOADS_TABLE_NAME
+    #     )
 
-        filter_posts_yesterday.marshall_and_sort_posts()
-        filter_posts_yesterday.filter_best_posts()
+    #     filter_posts_yesterday.marshall_and_sort_posts()
+    #     filter_posts_yesterday.filter_best_posts()
 
-        posts_yesterday = filter_posts_yesterday.get_filtered_posts()
+    #     posts_yesterday = filter_posts_yesterday.get_filtered_posts()
 
-        posts_to_download = []
+    #     posts_to_download = []
 
-        for post in posts:
-            if post not in posts_yesterday:
-                posts_to_download.append(post)
-    except:
-        posts_to_download = posts
+    #     for post in posts:
+    #         if post not in posts_yesterday:
+    #             posts_to_download.append(post)
+    # except:
+    #     posts_to_download = posts
+    posts_to_download = posts
 
     download_posts = DownloadPosts(
         s3=s3,
         posts=posts_to_download,
         bucket_name=unparsed_subreddit_group,
         logger=logger,
-        # download_path="./tt",
-        # encode_path="./tt/encode",
+        download_path="./tt",
+        encode_path="./tt/encode",
     )
     download_posts.download_videos()
 
@@ -114,7 +115,7 @@ def run(event, context):
 
         idx += 1
 
-    # video_stamps = video_stamps[0:1]
+    video_stamps = video_stamps[0:2]
     logger.info(f"Number of videos that will be generated are {len(video_stamps)}")
     print(f"Number of videos that will be generated are {len(video_stamps)}")
 
@@ -162,6 +163,7 @@ def process_a_video(
     video_processing.concatenate_videos_and_render(LIKE_AND_SUBSCRIBE_CLIPS_BUCKET)
 
     print(f"Finished processing video {bucket_name + str(counter)}")
+    return
 
     print(f"Uploading the video: {video_processing.final_video_name}")
 
@@ -173,7 +175,7 @@ def process_a_video(
     keywords = ", ".join(parse_subreddits_group(video_processing.bucket_name))
     keywords = f'"{keywords}"'
     description = f"""
-    Enjoy watching these funny memes.
+    Enjoy watching these funny meme clips/videos.
 
     Try not to laugh as you watch these funny/awesome/wholesome/creative/amazing  videos.
 

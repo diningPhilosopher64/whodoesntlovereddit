@@ -24,6 +24,10 @@ ec2 = boto3.client("ec2", region_name=REGION)
 def run(event, context):
     unparsed_subreddit_group = str(event["Records"][0]["body"])
 
+    #  apt-get install python3-venv -y
+    # apt install awscli -y
+    # apt install docker.io -y
+
     init_script = (
         """
         #!/bin/bash

@@ -193,12 +193,14 @@ class VideoProcessing:
                 print(f"Intro clip is {processed_file_name}")
                 intro_clip = VideoFileClip(
                     os.path.join(self.processed_path, processed_file_name)
+                    # processed_file_name
                 )
 
             elif processed_file_name.startswith("outtro"):
                 print(f"Outtro clip is {processed_file_name}")
                 outtro_clip = VideoFileClip(
                     os.path.join(self.processed_path, processed_file_name)
+                    # processed_file_name
                 )
 
             else:
@@ -206,6 +208,7 @@ class VideoProcessing:
                 inbetween_clips.append(
                     VideoFileClip(
                         os.path.join(self.processed_path, processed_file_name)
+                        # processed_file_name
                     )
                 )
 
