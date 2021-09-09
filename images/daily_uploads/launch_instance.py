@@ -22,11 +22,8 @@ ec2 = boto3.client("ec2", region_name=REGION)
 
 
 def run(event, context):
-    unparsed_subreddit_group = str(event["Records"][0]["body"])
 
-    #  apt-get install python3-venv -y
-    # apt install awscli -y
-    # apt install docker.io -y
+    UNPARSED_SUBREDDITS_GROUP = str(event["Records"][0]["body"])
 
     init_script = (
         """
@@ -75,7 +72,7 @@ def run(event, context):
 
         pip install -r whodoesntlovereddit/images/requirements.txt 
         """
-        + f"export DAILY_UPLOADS_TABLE_NAME={DAILY_UPLOADS_TABLE_NAME} TRANSITION_CLIPS_BUCKET={TRANSITION_CLIPS_BUCKET} INTRO_VIDEO_CLIPS_BUCKET={INTRO_VIDEO_CLIPS_BUCKET} OUTTRO_CLIPS_BUCKET={OUTTRO_CLIPS_BUCKET} LIKE_AND_SUBSCRIBE_CLIPS_BUCKET={LIKE_AND_SUBSCRIBE_CLIPS_BUCKET} MAX_VIDEO_DURATION = {MAX_VIDEO_DURATION}"
+        + f"export DAILY_UPLOADS_TABLE_NAME={DAILY_UPLOADS_TABLE_NAME} TRANSITION_CLIPS_BUCKET={TRANSITION_CLIPS_BUCKET} INTRO_VIDEO_CLIPS_BUCKET={INTRO_VIDEO_CLIPS_BUCKET} OUTTRO_CLIPS_BUCKET={OUTTRO_CLIPS_BUCKET} LIKE_AND_SUBSCRIBE_CLIPS_BUCKET={LIKE_AND_SUBSCRIBE_CLIPS_BUCKET} MAX_VIDEO_DURATION = {MAX_VIDEO_DURATION} UNPARSED_SUBREDDITS_GROUP = {UNPARSED_SUBREDDITS_GROUP}"
     )
 
     # shutdown -h +5
