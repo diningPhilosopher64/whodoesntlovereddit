@@ -32,10 +32,9 @@ def run():
 
     for idx, item in enumerate(os.listdir(POSTS_DOWNLOAD_LOCATION)):
 
+        posts_json_file = Path(POSTS_DOWNLOAD_LOCATION) / item / f"{item}.json"
         logger.info(f"Stitching individual clips of the file {posts_json_file}")
         encoded_files_path = Path(POSTS_DOWNLOAD_LOCATION) / item / "encoded"
-
-        posts_json_file = Path(POSTS_DOWNLOAD_LOCATION) / item / f"{item}.json"
 
         with open(posts_json_file, "r") as f:
             posts = json.load(f)

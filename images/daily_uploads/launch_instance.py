@@ -53,12 +53,15 @@ def run(event, context):
 
         cd /home/ec2-user
 
+        #sudo apt install -y python3-venv
+        #sudo apt install -y python3-pip
         python3 -m venv .venv
         source .venv/bin/activate
 
         eval $(ssh-agent -s)
         ssh-keyscan github.com >> ~/.ssh/known_hosts
-
+        
+        # sudo apt install -y awscli
         #Grab private key from s3 bucket
         aws s3 cp s3://whodoesntlovereddit-keys/gh_dining .
 
@@ -70,7 +73,7 @@ def run(event, context):
 
         pip install -r whodoesntlovereddit/images/requirements.txt 
         """
-        + f"export DAILY_UPLOADS_TABLE_NAME={DAILY_UPLOADS_TABLE_NAME} TRANSITION_CLIPS_BUCKET={TRANSITION_CLIPS_BUCKET} INTRO_VIDEO_CLIPS_BUCKET={INTRO_VIDEO_CLIPS_BUCKET} OUTTRO_CLIPS_BUCKET={OUTTRO_CLIPS_BUCKET} LIKE_AND_SUBSCRIBE_CLIPS_BUCKET={LIKE_AND_SUBSCRIBE_CLIPS_BUCKET} MAX_VIDEO_DURATION = {MAX_VIDEO_DURATION} UNPARSED_SUBREDDITS_GROUP = {UNPARSED_SUBREDDITS_GROUP}"
+        + f"export DAILY_UPLOADS_TABLE_NAME={DAILY_UPLOADS_TABLE_NAME} TRANSITION_CLIPS_BUCKET={TRANSITION_CLIPS_BUCKET} INTRO_VIDEO_CLIPS_BUCKET={INTRO_VIDEO_CLIPS_BUCKET} OUTTRO_CLIPS_BUCKET={OUTTRO_CLIPS_BUCKET} LIKE_AND_SUBSCRIBE_CLIPS_BUCKET={LIKE_AND_SUBSCRIBE_CLIPS_BUCKET} MAX_VIDEO_DURATION={MAX_VIDEO_DURATION} UNPARSED_SUBREDDITS_GROUP={UNPARSED_SUBREDDITS_GROUP}"
     )
 
     # shutdown -h +5

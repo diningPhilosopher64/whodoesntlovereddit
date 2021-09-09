@@ -29,13 +29,33 @@ def run():
     start = time()
     video_paths_to_upload = get_paths_of_videos()
 
-    upload_commands = []
+    videos_data = []
     for video_path in video_paths_to_upload:
-        upload_commands.append(prepare_video_metadata_to_upload(video_path))
+        videos_data.append(prepare_video_metadata_to_upload(video_path))
 
-    with ProcessPoolExecutor(max_workers=len(upload_commands)) as executor:
+    s3 = boto3.client("s3")
+    bucket_name = "whodoesntlovereddit" + "-" + str(datetime.today().date())
+    if not s3_helpers.bucket_exists(
+        s3,
+        logger,
+        {
+            "Bucket": bucket_name,
+        },
+    ):
+        s3_helpers.create_bucket(
+            s3,
+            logger,
+            {
+                "ACL": "private",
+                "Bucket": bucket_name,
+                "CreateBucketConfiguration": {"LocationConstraint": "ap-south-1"},
+            },
+        )
+
+    with ProcessPoolExecutor(max_workers=len(videos_data)) as executor:
         future_upload_process = {
-            executor.submit(upload_video, upload_cmd) for upload_cmd in upload_commands
+            executor.submit(upload_to_s3, bucket_name, video_data[0], video_data[1])
+            for video_data in videos_data
         }
 
         for future in as_completed(future_upload_process):
@@ -51,6 +71,18 @@ def run():
 
     logger.info(
         f"Time taken to upload {len(video_paths_to_upload)} vidoes is {round(end-start,2)}s"
+    )
+
+
+def upload_to_s3(bucket_name, metadata_file_path, video_file_path):
+    s3 = boto3.client("s3")
+
+    s3_helpers.upload_file(
+        s3, logger, bucket_name=bucket_name, file_path=str(video_file_path)
+    )
+
+    s3_helpers.upload_file(
+        s3, logger, bucket_name=bucket_name, file_path=str(metadata_file_path)
     )
 
 
@@ -132,18 +164,17 @@ def prepare_video_metadata_to_upload(video_path):
     title = f'"{str(video_path).split("/")[-1]}"'
     file_path = f'"{str(video_path)}"'
 
-    upload_cmd = [
-        "python",
-        "upload_video.py",
-        f"--file={file_path}",
-        f"--title={title}",
-        f"--description={description}",
-        f"--keywords={keywords}",
-        f"--category={category_id}",
-        '--privacyStatus="private"',
-    ]
+    file_name = str(video_path).split("/")[-1]
+    video_name = file_name.split(".")[0]
 
-    return upload_cmd
+    meta_data_file = video_path.parent / f"{video_name}_meta_data.txt"
+
+    with open(meta_data_file, "w") as f:
+        f.write(f"{title}\n{description}\n{keywords}\n{description}\n{category_id}\n")
+
+    video_data = (meta_data_file, file_path)
+
+    return video_data
 
 
 def get_post_from_name(posts, post_name):

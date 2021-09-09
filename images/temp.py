@@ -23,10 +23,10 @@ from daily_uploads import (
 
 process_posts_in_subreddits_group.process_posts()
 
-# download_and_resize.run()
+download_and_resize.run()
 
-# process_individual_clips.run()
+process_individual_clips.run()
 
-# stitch_clips_and_render.run()
+stitch_clips_and_render.run()
 
-# upload_video_files.run()
+upload_video_files.run()

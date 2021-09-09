@@ -40,8 +40,8 @@ def process_posts():
     filter_posts = FilterPosts(
         ddb=ddb,
         subreddits_group=parsed_subreddits_group,
-        # date=str(datetime.today().date()),
-        date="2021-09-07",
+        date=str(datetime.today().date()),
+        # date="2021-09-07",
         logger=logger,
     )
 
@@ -97,13 +97,13 @@ def split_posts_across_videos(posts):
 
     total_duration = 0
     idx = start_idx
-    while idx < len(all_posts):
-        total_duration += all_posts[idx]["duration"]
+    while idx < len(posts):
+        total_duration += posts[idx]["duration"]
         idx += 1
 
     if total_duration > MAX_VIDEO_DURATION:
         print("total duration of final video greater than MAX_VIDEO_DURATION")
-        create_posts_json_file(posts, start_idx, len(all_posts), counter)
+        create_posts_json_file(posts, start_idx, len(posts), counter)
     else:
         print(
             "total duration of final video lesser than MAX_VIDEO_DURATION. So appending final video posts to penultimate video posts"

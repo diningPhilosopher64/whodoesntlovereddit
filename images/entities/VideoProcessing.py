@@ -328,7 +328,7 @@ class VideoProcessing:
             print(
                 f"The video clip with file name {file_name} has no audio. Fetching a random clip"
             )
-            if "funny" in bucket_name:
+            if "funny" in bucket_name.lower() or "people" in bucket_name.lower():
                 random_audio_file = VideoProcessing.download_a_random_clip(
                     bucket_name=AUDIO_CLIPS_BUCKET,
                     download_path=encode_path,
