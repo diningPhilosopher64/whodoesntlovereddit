@@ -96,7 +96,7 @@ custom:
 functions:
   - check_for_new_subreddits: ${file(lambdas/check_for_new_subreddits/generic.yml):function}
   - daily_uploads_gather_posts: ${file(lambdas/daily_uploads/gather_posts/generic.yml):function}
-  # - daily_uploads_launch_instance: ${file(lambdas/daily_uploads/launch_instance/generic.yml):function}
+  - daily_uploads_launch_instance: ${file(lambdas/daily_uploads/launch_instance/generic.yml):function}
   # - daily_uploads_process_subreddits_group: ${file(lambdas/daily_uploads/process_subreddits_group/generic.yml):function}
   # - daily_uploads_download_posts: ${file(lambdas/daily_uploads/download_posts/generic.yml):function}
 

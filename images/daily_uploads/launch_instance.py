@@ -29,29 +29,27 @@ def run(event, context):
         """
         #!/bin/bash
 
-        sudo su
+        # sudo su
 
         #Update and install git
-        yum update -y
-        yum install -y git ImageMagick 
+        sudo yum update -y
+        sudo yum install -y git ImageMagick 
         # yum install ImageMagick -y
 
         # Setup ffmpeg                    
-        mkdir /usr/local/bin/ffmpeg 
+        sudo mkdir /usr/local/bin/ffmpeg 
 
-        wget -P /usr/local/bin/ffmpeg  https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
-        tar -xvf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz --directory /usr/local/bin/ffmpeg  
+        sudo wget -P /usr/local/bin/ffmpeg  https://johnvansickle.com/ffmpeg/releases/ffmpeg-release-amd64-static.tar.xz && \
+        sudo tar -xvf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz --directory /usr/local/bin/ffmpeg  
 
-        mv /usr/local/bin/ffmpeg/ffmpeg-4.4-amd64-static/ffmpeg /usr/local/bin/ffmpeg/
+        sudo mv /usr/local/bin/ffmpeg/ffmpeg-4.4-amd64-static/ffmpeg /usr/local/bin/ffmpeg/
 
-        ln -s /usr/local/bin/ffmpeg/ffmpeg /usr/bin/ffmpeg
+        sudo ln -s /usr/local/bin/ffmpeg/ffmpeg /usr/bin/ffmpeg
 
         # Remove tar and unused files
-        rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static && \
-        rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz
-
-        # Come out of root
-        exit
+        sudo rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static && \
+        sudo rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz
+      
 
         cd /home/ec2-user
 
