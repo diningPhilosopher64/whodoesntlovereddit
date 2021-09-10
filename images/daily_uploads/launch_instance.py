@@ -71,9 +71,16 @@ def run(event, context):
 
         git clone git@github.com:diningPhilosopher64/whodoesntlovereddit.git
 
-        pip install -r whodoesntlovereddit/images/requirements.txt 
+        pip install -r whodoesntlovereddit/exact_requirements.txt
         """
         + f"export DAILY_UPLOADS_TABLE_NAME={DAILY_UPLOADS_TABLE_NAME} TRANSITION_CLIPS_BUCKET={TRANSITION_CLIPS_BUCKET} INTRO_VIDEO_CLIPS_BUCKET={INTRO_VIDEO_CLIPS_BUCKET} OUTTRO_CLIPS_BUCKET={OUTTRO_CLIPS_BUCKET} LIKE_AND_SUBSCRIBE_CLIPS_BUCKET={LIKE_AND_SUBSCRIBE_CLIPS_BUCKET} MAX_VIDEO_DURATION={MAX_VIDEO_DURATION} UNPARSED_SUBREDDITS_GROUP={UNPARSED_SUBREDDITS_GROUP}"
+        + """
+        cd whodoesntlovereddit/images
+        
+        python temp.py
+        
+        shutdown -h +5
+        """
     )
 
     # shutdown -h +5
