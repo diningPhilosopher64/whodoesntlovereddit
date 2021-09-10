@@ -56,11 +56,12 @@ class DownloadPosts:
         )
 
         file_name_mp4 = post["name"] + ".mp4"
-        # file_name_mkv = post["name"] + ".mkv"
+        file_name_mkv = post["name"] + ".mkv"
 
         download_file_path_mp4 = os.path.join(self.download_path, file_name_mp4)
+        download_file_path_mkv = os.path.join(self.download_path, file_name_mkv)
         encode_file_path_mp4 = os.path.join(self.encode_path, file_name_mp4)
-        # encode_file_path_mkv = os.path.join(self.encode_path, file_name_mkv)
+        encode_file_path_mkv = os.path.join(self.encode_path, file_name_mkv)
 
         ydl_opts = {
             "format": "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best",
@@ -87,7 +88,7 @@ class DownloadPosts:
         #     "-y",
         # ]
 
-        ffmpeg_resize_command = [
+        ffmpeg_convert_command = [
             "ffmpeg",
             "-y",
             "-hide_banner",
@@ -97,6 +98,31 @@ class DownloadPosts:
             # "+faststart",
             "-i",
             download_file_path_mp4,
+            encode_file_path_mkv,
+        ]
+
+        print("Converting file")
+
+        subprocess.run(
+            ffmpeg_convert_command, stdout=subprocess.PIPE, stderr=subprocess.PIPE
+        )
+
+        os.system(f"rm {download_file_path_mp4}")
+
+        print("Finished converting, removing mp4 version")
+        os.system(f"cp {encode_file_path_mkv} {download_file_path_mkv}")
+        print("moving mkv to download_path for resizing")
+
+        ffmpeg_resize_command = [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            # "-movflags",
+            # "+faststart",
+            "-i",
+            download_file_path_mkv,
             "-vcodec",
             "libx264",
             "-acodec",
