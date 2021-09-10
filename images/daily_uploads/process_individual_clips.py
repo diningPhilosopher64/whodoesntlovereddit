@@ -44,8 +44,9 @@ def run():
 
         posts_for_processing = []
         for clip in os.listdir(encoded_files_path):
-
-            posts_for_processing.append(get_post_from_name(posts, clip.split(".")[0]))
+            post_name = get_post_from_name(posts, clip.split(".")[0])
+            if post_name:
+                posts_for_processing.append(post_name)
 
         video_processing = VideoProcessing(
             encode_path=encoded_files_path,

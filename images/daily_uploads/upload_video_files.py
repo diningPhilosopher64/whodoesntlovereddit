@@ -20,7 +20,9 @@ from entities.VideoProcessing import VideoProcessing
 from helpers import s3 as s3_helpers
 
 
-POSTS_DOWNLOAD_LOCATION = os.getenv("POSTS_DOWNLOAD_LOCATION", "posts")
+POSTS_DOWNLOAD_LOCATION = os.getenv(
+    "POSTS_DOWNLOAD_LOCATION", os.path.join(os.getcwd(), "posts")
+)
 UNPARSED_SUBREDDITS_GROUP = os.getenv("UNPARSED_SUBREDDITS_GROUP")
 
 
@@ -96,7 +98,7 @@ def get_paths_of_videos():
         )
 
         for video in os.listdir(video_folder_path):
-            if video.startswith("whodoesntlovereddit"):
+            if video.startswith("whodoesntlovereddit") and video.endswith(".mp4"):
                 videos_to_upload.append(video_folder_path / video)
                 break
 
@@ -172,7 +174,7 @@ def prepare_video_metadata_to_upload(video_path):
     with open(meta_data_file, "w") as f:
         f.write(f"{title}\n{description}\n{keywords}\n{description}\n{category_id}\n")
 
-    video_data = (meta_data_file, file_path)
+    video_data = (meta_data_file, video_path)
 
     return video_data
 
