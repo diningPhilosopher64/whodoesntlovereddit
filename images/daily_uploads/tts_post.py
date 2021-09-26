@@ -23,7 +23,7 @@ from daily_uploads.subredditList import subreddits as all_subreddits
 
 
 ddb = boto3.client("dynamodb", region_name="ap-south-1")
-sqs = boto3.client("sqs")
+# sqs = boto3.client("sqs")
 
 REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
