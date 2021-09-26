@@ -184,7 +184,7 @@ class TTS:
         with open(iframe_file_path, "r") as f:
             soup = BeautifulSoup(f, "html.parser")
             # paragraphs = soup.findAll("p")
-
+        target_item = None
         try:
             divs = soup.select(".md")
             target_item = divs[0] if is_comment else divs[1]
@@ -192,9 +192,12 @@ class TTS:
         except Exception as exc:
             print(divs, iframe_file_path)
             print(exc)
+            return None, None
         # FIXME:  If reply to a reply, you'll have to pass additional arg which contains the
         # target text. Then you can iterate over paragraphs to get the target text using 'in'
 
+        if not target_item:
+            return None, None
         delimiters = ".,\n"
         prefix = ""
         prefix_parsed_split_paras = []
@@ -291,6 +294,9 @@ class TTS:
                 is_comment, saved_iframe_path
             )
 
+            if prefix_parsed_split_text is None or comment_split_text is None:
+                continue
+
             for idx, split_comment in enumerate(comment_split_text):
                 comment_arg_dict = {
                     "text_to_show": prefix_parsed_split_text[idx],
@@ -325,6 +331,9 @@ class TTS:
                     prefix_reply_split_text,
                     reply_split_text,
                 ) = self.__split_text_into_lines(is_comment, saved_iframe_path)
+
+                if prefix_reply_split_text is None or reply_split_text is None:
+                    continue
 
                 for index1, split_reply in enumerate(reply_split_text):
                     reply_arg_dict = {
