@@ -38,9 +38,9 @@ class VideoProcessing:
         self.s3 = s3
         self.logger = logger
 
-        self.logger.info(f"Encode path set to: {self.encode_path}")
-        self.logger.info(f"Processed path set to: {self.processed_path}")
-        self.logger.info(f"Final video path set to: {self.final_video_path}")
+        # self.logger.info(f"Encode path set to: {self.encode_path}")
+        # self.logger.info(f"Processed path set to: {self.processed_path}")
+        # self.logger.info(f"Final video path set to: {self.final_video_path}")
 
     def __download_transition_clips(self, TRANSITION_CLIPS_BUCKET):
         transition_clips_file_paths = {}
@@ -80,9 +80,9 @@ class VideoProcessing:
     ):
 
         # list items in transitions bucket
-        # self.logger.info("Processing each video in parallel")
-        print("Processing the following video clips in parallel:")
-        print([post["title"] for post in self.posts])
+        # # self.logger.info("Processing each video in parallel")
+        # print("Processing the following video clips in parallel:")
+        # print([post["title"] for post in self.posts])
         processes = []
 
         transition_clips_paths = self.__download_transition_clips(
@@ -174,16 +174,16 @@ class VideoProcessing:
         # self.logger.info(
         #     f"Finished processing {len(self.posts)} video clips in {round(end - start, 2)} seconds"
         # )
-        print(
-            f"Finished processing {len(self.posts)} video clips in {round(end - start, 2)} seconds"
-        )
+        # print(
+        #     f"Finished processing {len(self.posts)} video clips in {round(end - start, 2)} seconds"
+        # )
 
         # self.logger.info(f"Concatenating processed clips")
-        print(f"Concatenating processed clips")
+        # print(f"Concatenating processed clips")
 
     def concatenate_videos_and_render(self, LIKE_AND_SUBSCRIBE_CLIPS_BUCKET):
         print("Trying to concatenate videos of final video\n", self.final_video_path)
-        self.logger.info("Concatenating clips to render video")
+        # self.logger.info("Concatenating clips to render video")
 
         intro_clip = None
         outtro_clip = None
@@ -241,7 +241,7 @@ class VideoProcessing:
         with open(self.final_video_path, "rb") as f:
             self.s3.upload_fileobj(f, self.bucket_name, self.final_video_path)
 
-        self.logger.info(f"Uploaded {self.final_video_path} to {self.bucket_name}")
+        # self.logger.info(f"Uploaded {self.final_video_path} to {self.bucket_name}")
 
     def download_a_random_clip(
         bucket_name, download_path, logger, file_name_prefix="", s3=None, prefix=""
@@ -278,8 +278,8 @@ class VideoProcessing:
         #     file_name if not file_name_prefix else file_name_prefix + "_" + file_name
         # )
 
-        logger.info(f"Downloading {file_name}")
-        print(f"Downloading {file_name}")
+        # logger.info(f"Downloading {file_name}")
+        # print(f"Downloading {file_name}")
 
         file_path = os.path.join(download_path, file_name)
 
@@ -353,7 +353,7 @@ class VideoProcessing:
         watermark_clip = watermark_clip.set_duration(duration).set_fps(fps)
         watermark_clip = watermark_clip.set_pos(("bottom"))
         # logger.info(f"Generated watermark_clip for the post with name : {post['name']}")
-        print(f"Generated watermark_clip for the post with title : {post['title']}")
+        # print(f"Generated watermark_clip for the post with title : {post['title']}")
 
         # Generate Title for the video
         title_clip = TextClip(
@@ -371,17 +371,17 @@ class VideoProcessing:
         title_clip = title_clip.set_pos(("top"))
         title_clip = title_clip.set_duration(title_clip_duration).set_fps(fps)
         # logger.info(f"Generated title_clip for the post with name : {post['name']}")
-        print(f"Generated title_clip for the post with name : {post['title']}")
+        # print(f"Generated title_clip for the post with name : {post['title']}")
 
         processed_clip = CompositeVideoClip(
             [video_clip, title_clip, watermark_clip], size=size
         )
-        logger.info(
-            f"Composited video_clip, title_clip and watermark_clip for the post with name : {post['name']}"
-        )
-        print(
-            f"Composited video_clip, title_clip and watermark_clip for the post with name : {post['title']}"
-        )
+        # logger.info(
+        #     f"Composited video_clip, title_clip and watermark_clip for the post with name : {post['name']}"
+        # )
+        # print(
+        #     f"Composited video_clip, title_clip and watermark_clip for the post with name : {post['title']}"
+        # )
 
         transition_clip = VideoFileClip(params["transition_clip_path"])
 
@@ -400,9 +400,9 @@ class VideoProcessing:
             # logger.info(
             #     f"Post with name : {post['name']} is the first video of the subreddit group to be concatenated."
             # )
-            print(
-                f"Post with name : {post['title']} is the first video of the subreddit group to be concatenated."
-            )
+            # print(
+            #     f"Post with name : {post['title']} is the first video of the subreddit group to be concatenated."
+            # )
 
         elif params["is_last"]:
             # If last video, concatenate: processed_clip | outtro
@@ -418,8 +418,8 @@ class VideoProcessing:
         else:
             # Some video in the middle, concatenate: processed_clip | transition
             final_clip = concatenate_videoclips([processed_clip, transition_clip])
-            # logger.info(f"Post with name : {post['name']} is being concatenated.")
-            print(f"Post with name : {post['title']} is being concatenated.")
+            # (f"Post with name : {post['name']} is being concatenated.")
+            # print(f"Post with name : {post['title']} is being concatenated.")
 
         final_clip_path = os.path.join(processed_path, params["file_name"])
 

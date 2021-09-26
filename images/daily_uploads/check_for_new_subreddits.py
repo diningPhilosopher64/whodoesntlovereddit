@@ -5,7 +5,7 @@ pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
 
 # Initialize logger and its config.
 logger = logging.getLogger()
-logger.setLevel(logging.INFO)
+# logger.setLevel(logging.INFO)
 
 # Added the below 2 lines to let python discover files other than the handler
 # ie. enabled relative imports with the below 2 lines.

@@ -33,7 +33,7 @@ def run(event, context):
 
         #Update and install git
         sudo yum update -y
-        sudo yum install -y git ImageMagick 
+        sudo yum install -y git ImageMagick htop
         # yum install ImageMagick -y
 
         # Setup ffmpeg                    

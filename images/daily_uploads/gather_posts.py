@@ -1,7 +1,7 @@
 import boto3, os, sys, logging, pprint
 
 # from time import time
-import time
+import time, random
 from pathlib import Path
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
@@ -105,6 +105,8 @@ def run(event, context):
             },
         ]
     }
+
+    time.sleep(random.randint(0, 20))
 
     res = ddb_helpers.transact_write_items(ddb, logger, **params)
 

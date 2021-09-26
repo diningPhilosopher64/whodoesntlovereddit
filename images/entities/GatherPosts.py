@@ -47,7 +47,7 @@ class GatherPosts:
         """
         item = self.key()
         item["posts"] = GatherPosts.__serialize_posts(self.eligible_posts)
-        self.logger.info("Serialized item successfully")
+        # self.logger.info("Serialized item successfully")
         # self.logger.info(pp.pformat(item))
         return item
 
@@ -121,12 +121,12 @@ class GatherPosts:
                 self.eligible_posts.append(temp)
 
                 # self.total_duration += duration
-                self.logger.info(
-                    f"Post:\nTitle: {post['title']}\nDuration: {duration}s\nwas added to eligible posts\n"
-                )
+                # self.logger.info(
+                #     f"Post:\nTitle: {post['title']}\nDuration: {duration}s\nwas added to eligible posts\n"
+                # )
 
-        self.logger.info("Eligible posts are ")
-        self.logger.info(pp.pformat(self.eligible_posts))
+        # self.logger.info("Eligible posts are ")
+        # self.logger.info(pp.pformat(self.eligible_posts))
         self.logger.info(
             f"Total duration for {self.subreddit} subreddit on {self.date} is {self.total_duration}\n"
         )

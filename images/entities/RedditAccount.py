@@ -33,8 +33,9 @@ class RedditAccount:
         self.password = deserialized_item["password"]
         self.data["username"] = self.username
         self.data["password"] = self.password
-        self.logger.info("Fetched and updated the following account details:\n")
-        self.logger.info(pp.pformat(deserialized_item))
+        self.logger.info("Fetched and updated account details")
+        self.logger.debug("Fetched and updated the following account details:\n")
+        self.logger.debug(pp.pformat(deserialized_item))
 
     @staticmethod
     def deserialize_item(item):
@@ -49,6 +50,7 @@ class RedditAccount:
 
     def authenticate_with_api(self):
         self.auth = requests.auth.HTTPBasicAuth(self.client_id, self.secret_key)
+        self.logger.info("Configured authentication for reddit account")
 
     def fetch_and_update_access_token(self, REDDIT_AUTH_URL):
         try:
@@ -75,12 +77,14 @@ class RedditAccount:
             self.logger.error(f"Headers present in the POST request:\n")
             self.logger.error(pp.pformat(self.headers))
 
+        self.logger.info("Successfully fetched access_token and updated headers")
         self.access_token = res["access_token"]
         self.headers["Authorization"] = f"bearer {self.access_token}"
 
     def fetch_posts_as_json(self, url, params={}):
         try:
             res = requests.get(url, headers=self.headers, params=params)
+
             return res.json()
 
         except Exception as err:

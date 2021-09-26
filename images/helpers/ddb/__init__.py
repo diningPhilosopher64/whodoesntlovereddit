@@ -111,8 +111,8 @@ def transact_get_items(ddb, logger, **kwargs):
         items = resp["Responses"]
 
         return_value = [item["Item"] for item in items]
-        logger.info("Received the following item from db:\n")
-        logger.info(pp.pformat(return_value))
+        # logger.info("Received the following item from db:\n")
+        # logger.info(pp.pformat(return_value))
 
     except ddb.exceptions.TransactionCanceledException as err:
         logger.error(f"TransactionCanceledException raised. Details:\nTransactItems:\n")
@@ -149,8 +149,8 @@ def transact_write_items(ddb, logger, **kwargs):
     try:
         resp = ddb.transact_write_items(**kwargs)
         return_value = resp
-        logger.info("Received the following item from db:\n")
-        logger.info(pp.pformat(return_value))
+        # logger.info("Received the following item from db:\n")
+        # logger.info(pp.pformat(return_value))
 
     except ddb.exceptions.TransactionCanceledException as err:
         logger.error(f"TransactionCanceledException raised. Details:\nTransactItems:\n")
