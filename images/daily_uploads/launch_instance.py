@@ -37,7 +37,7 @@ def run(event, context):
 
         # ubuntu
         sudo apt update -y 
-        sudo apt install -y git ImageMagick htop firefox-geckodriver wkhtmltopdf
+        sudo apt install -y git imagemagick htop firefox-geckodriver wkhtmltopdf
 
         # Setup ffmpeg                    
         sudo mkdir /usr/local/bin/ffmpeg 
