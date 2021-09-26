@@ -32,9 +32,12 @@ def run(event, context):
         # sudo su
 
         #Update and install git
-        sudo yum update -y
-        sudo yum install -y git ImageMagick htop
-        # yum install ImageMagick -y
+        # sudo yum update -y
+        # sudo yum install -y git ImageMagick htop
+
+        # ubuntu
+        sudo apt update -y 
+        sudo apt install -y git ImageMagick htop firefox-geckodriver wkhtmltopdf
 
         # Setup ffmpeg                    
         sudo mkdir /usr/local/bin/ffmpeg 
@@ -50,11 +53,14 @@ def run(event, context):
         sudo rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static && \
         sudo rm -rf /usr/local/bin/ffmpeg/ffmpeg-release-amd64-static.tar.xz
       
+        
 
         cd /home/ec2-user
 
-        #sudo apt install -y python3-venv
-        #sudo apt install -y python3-pip
+        # ubuntu
+        sudo apt install -y python3-venv
+        sudo apt install -y python3-pip
+        
         python3 -m venv .venv
         source .venv/bin/activate
 
@@ -67,7 +73,7 @@ def run(event, context):
 
         #Change permissions and add the key to use it.
         chmod 400 ./gh_dining
-        ssh-add ./gh_dining
+        ssh-add ./gh_dining        
 
         git clone git@github.com:diningPhilosopher64/whodoesntlovereddit.git
 
