@@ -4,6 +4,7 @@ import boto3, os, sys, logging, pprint, operator
 import time, random
 from pathlib import Path
 from concurrent.futures import ProcessPoolExecutor, as_completed
+from datetime import datetime
 import requests
 
 pp = pprint.PrettyPrinter(indent=2, compact=True, width=80)
@@ -29,7 +30,7 @@ REDDIT_AUTH_URL = os.getenv("REDDIT_AUTH_URL")
 REDDIT_ACCOUNTS_TABLE_NAME = os.getenv("REDDIT_ACCOUNTS_TABLE_NAME")
 REDDIT_API_URL_NEW = "https://oauth.reddit.com/r/placeholder_value/new"
 DAILY_UPLOADS_TABLE_NAME = os.getenv("DAILY_UPLOADS_TABLE_NAME")
-
+VIDEO_URLS_TABLE_NAME = os.getenv("VIDEO_URLS_TABLE_NAME")
 REDDIT_API_URL_TOP = "https://oauth.reddit.com/r/AskReddit/top"
 
 
@@ -46,11 +47,12 @@ def run():
 
     posts = fetch_posts(reddit_account)
 
+    posts_to_download = [
+        post for post in posts if not is_old_post(post, VIDEO_URLS_TABLE_NAME, logger)
+    ]
+
     # TODO: Considering only 1 post for now.
-    # TODO: How to update db ?
-    # subreddit-group-post-id ?
-    # Repeat the same concept for video processing ?
-    post = posts[-1]
+    post = posts_to_download[-1]
 
     post_name = post["name"]
 
@@ -95,6 +97,18 @@ def run():
     #             print(f"Generated an exception: {exc}")
     #         else:
     #             print(f"Generated data for comment process: {future}")
+
+
+def is_old_post(post, logger):
+    date = str(datetime.today().date())
+    pk = "askreddit" + "-" + date
+    sk = post["url"]
+
+    kwargs = {
+        "TableName": VIDEO_URLS_TABLE_NAME,
+        "Key": {"PK": {"S": pk}, "SK": {"S": sk}},
+    }
+    return True if ddb_helpers.item_exists(ddb=ddb, logger=logger, **kwargs) else False
 
 
 def fetch_posts(reddit_account):

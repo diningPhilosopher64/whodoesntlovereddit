@@ -4,10 +4,10 @@ VideoUrlsTable:
     TableName: VideoUrlsTable-${self:provider.stage}
     BillingMode: PAY_PER_REQUEST
     AttributeDefinitions:
-      - AttributeName: PK # Holds the date in  the format:  yyyy:mmmm:dd
+      - AttributeName: PK # Holds the subreddits_group delimited by - and date
         AttributeType: S
 
-      - AttributeName: SK
+      - AttributeName: SK # Holds the post url
         AttributeType: S
 
     KeySchema:
