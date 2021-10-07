@@ -63,12 +63,12 @@ def run(event, context):
     filter_posts.filter_best_posts()
 
     posts = filter_posts.get_filtered_posts()
-    filter_posts_yesterday = FilterPosts(
-        ddb=ddb,
-        subreddits_group=parsed_subreddits_group,
-        date=str(datetime.today().date() - timedelta(days=1)),
-        logger=logger,
-    )
+    # filter_posts_yesterday = FilterPosts(
+    #     ddb=ddb,
+    #     subreddits_group=parsed_subreddits_group,
+    #     date=str(datetime.today().date() - timedelta(days=1)),
+    #     logger=logger,
+    # )
     # try:
     #     filter_posts_yesterday.get_posts_of_subreddits_from_db(
     #         TableName=DAILY_UPLOADS_TABLE_NAME
@@ -86,6 +86,11 @@ def run(event, context):
     #             posts_to_download.append(post)
     # except:
     #     posts_to_download = posts
+
+    posts_to_download = []
+
+    # TODO: Check if post is present in db already. If yes skip it. Else update db and download.
+
     posts_to_download = posts
 
     download_posts = DownloadPosts(

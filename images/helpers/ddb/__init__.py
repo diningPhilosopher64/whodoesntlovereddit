@@ -219,3 +219,11 @@ def deserialize_piece_of_item(key, value):
                 deserialized_items.append(deserialize_piece_of_item(_key, _value))
 
         return deserialized_items
+
+
+def item_exists(ddb, logger, **kwargs):
+    try:
+        resp = ddb.get_item(**kwargs)
+        return True if "Item" in resp else False
+    except:
+        Exceptions.log_generic_exception(logger)

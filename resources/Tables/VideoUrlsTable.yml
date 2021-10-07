@@ -4,23 +4,19 @@ VideoUrlsTable:
     TableName: VideoUrlsTable-${self:provider.stage}
     BillingMode: PAY_PER_REQUEST
     AttributeDefinitions:
-      - AttributeName: url
+      - AttributeName: PK # Holds the date in  the format:  yyyy:mmmm:dd
         AttributeType: S
 
-      # - AttributeName: status
-      #   AttributeType: S
-      # # ISO strings are represented as strings.
-      # - AttributeName: endingAt
-      #   AttributeType: S
+      - AttributeName: SK
+        AttributeType: S
+
     KeySchema:
-      - AttributeName: url
+      - AttributeName: PK
         KeyType: HASH
-    # GlobalSecondaryIndexes:
-    #   - IndexName: statusAndEndDate
-    #     KeySchema:
-    #       - AttributeName: status
-    #         KeyType: HASH
-    #       - AttributeName: endingAt
-    #         KeyType: RANGE
-    #     Projection:
-    #       ProjectionType: ALL
+
+      - AttributeName: SK
+        KeyType: RANGE
+
+    TimeToLiveSpecification:
+      AttributeName: "TTL"
+      Enabled: true

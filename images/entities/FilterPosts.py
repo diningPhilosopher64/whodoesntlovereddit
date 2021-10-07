@@ -71,17 +71,28 @@ class FilterPosts:
             ["ups", "total_awards_received", "upvote_ratio"], ascending=False, axis=0
         )
 
-    def filter_best_posts(self):
+    def filter_best_posts(self, VIDEO_URLS_TABLE_NAME):
         total_duration = 0
         for index, row in self.df_top.iterrows():
             duration = row["duration"]
-            has_awards = True if row["total_awards_received"] > 0 else False
+            post_has_awards = True if row["total_awards_received"] > 0 else False
 
             # TODO: Change this in production
-            if total_duration < 600 or has_awards:
-                # if total_duration < 350:
+            if total_duration < 600 or post_has_awards:
+                # if post_has_awards:
+                # if not self.__is_old_post(row["url"], VIDEO_URLS_TABLE_NAME):
                 total_duration += row["duration"]
                 self.df_filtered = self.df_filtered.append(row)
+
+    def is_old_post(self, post, TABLE_NAME):
+        pk = "-".join(self.subreddits_group) + "-" + self.date
+        sk = post["url"]
+        kwargs = {"TableName": TABLE_NAME, "Key": {"PK": {"S": pk}, "SK": {"S": sk}}}
+        return (
+            True
+            if ddb_helpers.item_exists(ddb=self.ddb, logger=self.logger, **kwargs)
+            else False
+        )
 
     def get_filtered_posts(self):
         return self.df_filtered.to_dict("records")

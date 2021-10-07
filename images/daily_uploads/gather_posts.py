@@ -106,7 +106,7 @@ def run(event, context):
         ]
     }
 
-    time.sleep(random.randint(0, 20))
+    time.sleep(random.randint(0, 10))
 
     res = ddb_helpers.transact_write_items(ddb, logger, **params)
 
