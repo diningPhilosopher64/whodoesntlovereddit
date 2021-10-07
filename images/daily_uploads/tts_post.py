@@ -99,13 +99,13 @@ def run():
     #             print(f"Generated data for comment process: {future}")
 
 
-def is_old_post(post, logger):
+def is_old_post(post, TABLE_NAME, logger):
     date = str(datetime.today().date())
     pk = "askreddit" + "-" + date
     sk = post["url"]
 
     kwargs = {
-        "TableName": VIDEO_URLS_TABLE_NAME,
+        "TableName": TABLE_NAME,
         "Key": {"PK": {"S": pk}, "SK": {"S": sk}},
     }
     return True if ddb_helpers.item_exists(ddb=ddb, logger=logger, **kwargs) else False

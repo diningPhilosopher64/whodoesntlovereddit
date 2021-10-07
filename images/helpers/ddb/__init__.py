@@ -41,7 +41,7 @@ def put_item(ddb, logger, **kwargs) -> dict:
     except Exception as err:
         logger.error("Key word arguments passed are:\n")
         logger.error(pp.pformat(kwargs))
-        Exceptions.log_generic_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
     finally:
         return return_value
@@ -81,7 +81,7 @@ def get_item(ddb, logger, **kwargs) -> dict:
         logger.error(pp.pformat(kwargs))
 
     except Exception as err:
-        Exceptions.log_generic_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
     finally:
         return return_value
@@ -121,7 +121,7 @@ def transact_get_items(ddb, logger, **kwargs):
     except Exception:
         logger.error("Raw data received in kwargs")
         logger.error(pp.pformat(kwargs))
-        Exceptions.log_generic_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
     finally:
         return return_value
@@ -157,7 +157,7 @@ def transact_write_items(ddb, logger, **kwargs):
         logger.error(pp.pformat(kwargs))
 
     except Exception:
-        Exceptions.log_generic_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
     finally:
         return return_value
@@ -178,7 +178,7 @@ def update_item(ddb, logger, **kwargs):
         return_value = resp
 
     except:
-        Exceptions.log_generic_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
 
     finally:
         return return_value
@@ -226,4 +226,4 @@ def item_exists(ddb, logger, **kwargs):
         resp = ddb.get_item(**kwargs)
         return True if "Item" in resp else False
     except:
-        Exceptions.log_generic_exception(logger)
+        Exceptions.log_generic_exception(kwargs, logger)
