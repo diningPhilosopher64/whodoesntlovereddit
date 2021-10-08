@@ -73,30 +73,24 @@ def run():
     tts.process_and_render()
     tts.stitch_clips_together()
 
-    # final_comments = []
-    # for comment in comments:
-    #     replies = fetch_replies(reddit_account, post_id, comment)
-    #     filtered_replies = filter_replies(replies)
 
-    #     final_comment = {}
-    #     final_comment["comment"] = comment
-    #     final_comment["replies"] = filtered_replies
+def update_db_of_considered_posts(posts, TABLE_NAME, subreddits_group, logger):
+    # 25 hours is 90000 seconds
+    EXPIRES_IN = 90000
+    EXPIRES_AT = int(time.time()) + EXPIRES_IN
+    date = str(datetime.today().date())
 
-    #     final_comments.append(final_comment)
+    for idx, post in enumerate(posts):
+        pk = "-".join(subreddits_group) + "-" + date
+        sk = post["url"]
+        kwargs = {
+            "TableName": TABLE_NAME,
+            "Item": {"PK": {"S": pk}, "SK": {"S": sk}, "TTL": {"N": str(EXPIRES_AT)}},
+        }
 
-    # with ProcessPoolExecutor(max_workers=10) as executor:
-    #     future_comment_processes = {
-    #         executor.submit(process_and_render_comment, comment)
-    #         for comment_with_replies in final_comments
-    #     }
+        logger.info(f"Updating {VIDEO_URLS_TABLE_NAME} with post {idx}")
 
-    #     for future in as_completed(future_comment_processes):
-    #         try:
-    #             data = future.result()
-    #         except Exception as exc:
-    #             print(f"Generated an exception: {exc}")
-    #         else:
-    #             print(f"Generated data for comment process: {future}")
+        ddb_helpers.put_item(ddb, **kwargs)
 
 
 def is_old_post(post, TABLE_NAME, logger):

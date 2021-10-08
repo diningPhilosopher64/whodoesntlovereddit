@@ -63,15 +63,23 @@ def process_posts():
     split_posts_across_videos(posts_to_download)
 
 
-def update_db_of_considered_posts(posts, logger):
+def update_db_of_considered_posts(posts, subreddits_group, logger, TABLE_NAME):
     # 25 hours is 90000 seconds
     EXPIRES_IN = 90000
     EXPIRES_AT = int(time.time()) + EXPIRES_IN
+    date = str(datetime.today().date())
     for idx, post in enumerate(posts):
+        pk = "-".join(subreddits_group) + "-" + date
+        sk = post["url"]
         kwargs = {
-            "TableName": VIDEO_URLS_TABLE_NAME,
-            "Item": {"PK": {"S": post["url"]}, "TTL": {"N": str(EXPIRES_AT)}},
+            "TableName": TABLE_NAME,
+            "Item": {"PK": {"S": pk}, "SK": {"S": sk}, "TTL": {"N": str(EXPIRES_AT)}},
         }
+
+        # kwargs = {
+        #     "TableName": VIDEO_URLS_TABLE_NAME,
+        #     "Item": {"PK": {"S": post["url"]}, "TTL": {"N": str(EXPIRES_AT)}},
+        # }
 
         logger.info(f"Updating {VIDEO_URLS_TABLE_NAME} with post {idx}")
 

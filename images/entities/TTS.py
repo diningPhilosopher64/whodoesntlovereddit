@@ -242,30 +242,41 @@ class TTS:
         return prefix_parsed_split_paras, parsed_split_paras
 
     def stitch_clips_together(self):
-        for folder in os.listdir(self.post_path):
-            comment_file_paths = glob.glob(
-                os.path.join(self.post_path, folder, "comment*.mp4")
-            )
-            comment_file_paths.sort()
-            comment_videos = []
+        import subprocess
 
-            for comment_file_path in comment_file_paths:
-                comment_videos.append(VideoFileClip(comment_file_path))
+        for folder in os.listdir(self.post_path):
+            comment_file_path = os.path.join(self.post_path, folder, "comment_0.mp4")
 
             reply_file_paths = glob.glob(
                 os.path.join(self.post_path, folder, "reply*.mp4")
             )
             reply_file_paths.sort()
 
-            reply_videos = []
-            for reply_file_path in reply_file_paths:
-                reply_videos.append(VideoFileClip(reply_file_path))
+            all_clips = [comment_file_path] + reply_file_paths
 
-            all_clips = comment_videos + reply_videos
+            clips_list_path = os.path.join(self.post_path, folder, "clips_list.txt")
+            with open(clips_list_path, "w") as f:
+                for clip in all_clips:
+                    f.write(f"file '{clip}'\n")
 
-            final_video_path = os.path.join(self.post_path, folder, "final.mp4")
-            final_video = concatenate_videoclips(all_clips)
-            final_video.write_videofile(final_video_path, logger=None)
+            cmd = [
+                "ffmpeg",
+                "-y",
+                "-hide_banner",
+                "-loglevel",
+                "error",
+                "-f",
+                "concat",
+                "-safe",
+                "0",
+                "-i",
+                clips_list_path,
+                "-c",
+                "copy",
+                "final.mp4",
+            ]
+
+            subprocess.run(cmd)
 
     def process_and_render(self):
         multiprocessing_args = []
