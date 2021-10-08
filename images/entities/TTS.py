@@ -179,6 +179,8 @@ class TTS:
         with open(saved_iframe_path, "w") as f:
             f.write(str(soup.prettify(formatter="html")))
 
+        browser.quit()
+
     def __split_text_into_lines(self, is_comment, iframe_file_path):
         # print("iframe_file_path ", iframe_file_path)
         with open(iframe_file_path, "r") as f:
@@ -352,7 +354,7 @@ class TTS:
             # break
 
         # print("multiprocessing ", multiprocessing_args)
-        with ProcessPoolExecutor(max_workers=10) as executor:
+        with ProcessPoolExecutor(max_workers=5) as executor:
             future_processes = {
                 executor.submit(TTS.process_and_render_item, args)
                 for args in multiprocessing_args
