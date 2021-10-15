@@ -51,7 +51,7 @@ def push_subreddits_to_queue(logger):
     for idx, subreddit in enumerate(all_subreddits):
         params["MessageBody"] = subreddit
         # delay_seconds = 0 if idx <= len(all_subreddits) / 2 else 15
-        delay_seconds = random.randint(0, 10)
+        # delay_seconds = random.randint(0, 10)
         params["DelaySeconds"] = delay_seconds
         res = sqs_helpers.send_message(sqs, logger, **params)
 

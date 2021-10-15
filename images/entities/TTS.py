@@ -241,23 +241,40 @@ class TTS:
 
         return prefix_parsed_split_paras, parsed_split_paras
 
-    def stitch_clips_together(self):
+    def stitch_comment_clips_together(self):
         import subprocess
 
         for folder in os.listdir(self.post_path):
+
             comment_file_path = os.path.join(self.post_path, folder, "comment_0.mp4")
+
+            if not os.path.isfile(comment_file_path):
+                continue
+
+            comment_file_paths = glob.glob(
+                os.path.join(self.post_path, folder, "comment_*.mp4")
+            )
+
+            comment_file_paths.sort()
 
             reply_file_paths = glob.glob(
                 os.path.join(self.post_path, folder, "reply*.mp4")
             )
             reply_file_paths.sort()
 
-            all_clips = [comment_file_path] + reply_file_paths
+            all_clips = comment_file_paths + reply_file_paths
 
             clips_list_path = os.path.join(self.post_path, folder, "clips_list.txt")
+
+            self.logger.info(
+                f"Stitching clips for comment {os.path.join(self.post_path, folder)}"
+            )
+
             with open(clips_list_path, "w") as f:
                 for clip in all_clips:
                     f.write(f"file '{clip}'\n")
+
+            final_comment_video_path = os.path.join(self.post_path, folder, "final.mp4")
 
             cmd = [
                 "ffmpeg",
@@ -273,10 +290,49 @@ class TTS:
                 clips_list_path,
                 "-c",
                 "copy",
-                "final.mp4",
+                final_comment_video_path,
             ]
 
             subprocess.run(cmd)
+
+    def stitch_all_clips_together(self):
+        import subprocess
+
+        all_clips = []
+        for folder in os.listdir(self.post_path):
+
+            final_clip_path = os.path.join(self.post_path, folder, "final.mp4")
+            if not os.path.isfile(final_clip_path):
+                continue
+
+            all_clips.append(final_clip_path)
+
+        all_clips_list_path = os.path.join(self.post_path, "all_clips_list.txt")
+
+        with open(all_clips_list_path, "w") as f:
+            for clip in all_clips:
+                f.write(f"file '{clip}'\n")
+
+        final_post_video_path = os.path.join(self.post_path, "final_post_video.mp4")
+
+        cmd = [
+            "ffmpeg",
+            "-y",
+            "-hide_banner",
+            "-loglevel",
+            "error",
+            "-f",
+            "concat",
+            "-safe",
+            "0",
+            "-i",
+            all_clips_list_path,
+            "-c",
+            "copy",
+            final_post_video_path,
+        ]
+
+        subprocess.run(cmd)
 
     def process_and_render(self):
         multiprocessing_args = []

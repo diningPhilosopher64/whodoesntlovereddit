@@ -36,7 +36,7 @@ provider:
     # Environment variables to launch instances
     AMI_ID: "ami-0a23ccb2cdd9286bb"
     # INSTANCE_TYPE: "c5.2xlarge"
-    INSTANCE_TYPE: "c6g.4xlarge"
+    INSTANCE_TYPE: "c5a.4xlarge"
     KEY_NAME: "whodoesntlovereddit"
     REGION: "ap-south-1"
 
